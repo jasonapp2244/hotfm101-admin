@@ -1,0 +1,115 @@
+======================================
+GOOGLE PLAY STORE LISTING
+Hot 101.5 Radio - Hot FM 101.5
+Package: com.appscrub.hotfm
+Developer: AppScrub
+======================================
+
+------ SHORT DESCRIPTION (80 characters max) ------
+
+Stream Hot 101.5 live, win prizes, watch videos & get local deals near you!
+
+
+------ FULL DESCRIPTION (4000 characters max) ------
+
+Hot 101.5 Radio brings your favorite station straight to your phone. Stream live radio anywhere, stay on top of music news, enter contests to win amazing prizes, and discover events and deals happening right in your neighborhood.
+
+YOUR STATION, YOUR WAY
+
+Tune in to Hot FM 101.5 with crystal-clear live streaming. Whether you're commuting, working out, or hanging with friends, your favorite hits are always just a tap away. Switch between dark and light themes to match your vibe.
+
+NEVER MISS A BEAT
+
+Stay current with the latest music news, artist updates, and industry stories delivered right to your feed. From breaking headlines to in-depth features, we keep you informed about the artists and music you love.
+
+WIN BIG WITH CONTESTS
+
+Enter exclusive contests and giveaways for a chance to win concert tickets, meet-and-greets, gift cards, and more. Get instant push notification alerts so you never miss a chance to win. Check contest details, entry deadlines, and winner announcements all in one place.
+
+EVENTS NEAR YOU
+
+Discover concerts, listening parties, station events, and community happenings in your area. RSVP directly from the app and get reminders so you never miss out on the action. See full event details including lineup, venue info, and directions.
+
+LOCAL DEALS & OFFERS
+
+Turn on location services to unlock exclusive deals and offers from businesses near you. From restaurants and shops to entertainment venues, find savings on the things you love most, right in your neighborhood.
+
+WATCH & LISTEN
+
+Access video broadcasts, behind-the-scenes content, artist interviews, and podcast episodes powered by YouTube. Watch live sessions, music videos, and exclusive station content whenever you want.
+
+SHOUTOUTS
+
+Record and submit your own 30-second video shoutout to be featured on the station. Send birthday wishes, dedicate a song, or just show your love for Hot 101.5. Your voice, your moment.
+
+STAY CONNECTED
+
+Enable push notifications to get real-time alerts about:
+- Breaking music news
+- New contest announcements
+- Upcoming events
+- Special deals near you
+- Station updates and exclusive content
+
+FEATURES AT A GLANCE
+- Live radio streaming with background playback
+- Music news and entertainment articles
+- Contests and giveaways with real prizes
+- Local events with RSVP functionality
+- Location-based ads, deals, and offers
+- Video broadcasts and podcasts via YouTube
+- 30-second shoutout video submissions
+- Push notifications for contests, news, and events
+- Dark and light theme options
+- Free to download and use
+
+Download Hot 101.5 Radio now and take your favorite station everywhere you go. The music never stops.
+
+Questions or feedback? Reach us at support@appscrub.com
+
+
+------ CATEGORY ------
+
+Primary: Music & Audio
+Secondary (if available): Entertainment
+
+
+------ CONTENT RATING QUESTIONNAIRE ANSWERS ------
+
+Violence: No
+Sexual Content: No
+Language: No (user-generated shoutouts are moderated)
+Controlled Substances: No
+Miscellaneous:
+  - Users can interact: Yes (shoutout video submissions)
+  - Users can share location: Yes (for local deals)
+  - Contains digital purchases: No
+  - Contains ads: Yes (location-based ads and deals)
+
+Recommended Rating: Rated for Everyone (with Interactive Elements: Users Interact, Shares Location)
+
+
+------ TARGET AUDIENCE ------
+
+Primary: 18-35
+Secondary: 13-17 (with parental consent), 35+
+App is NOT directed at children under 13
+Target countries: United States (primary)
+
+
+------ TAGS (up to 5) ------
+
+1. Radio
+2. Live Streaming
+3. Music
+4. Contests
+5. Local Events
+
+
+------ CONTACT DETAILS ------
+
+Developer: AppScrub
+Email: support@appscrub.com
+Website: https://hotfm1015.com
+Privacy Policy URL: https://hotfm1015.com/privacy-policy
+Physical Address: Tampa, FL, USA

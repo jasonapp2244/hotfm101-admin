@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1a1a6e;
+  --color-primary-light: #2d2d8a;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-dark-navy: #0f0f3d;
+  --color-sidebar-bg: #fafaff;
+  --color-card-border: #e5e7eb;
+  --color-badge-blue: #dbeafe;
+  --color-badge-blue-text: #1e40af;
+  --color-badge-green: #dcfce7;
+  --color-badge-green-text: #166534;
+  --color-badge-red: #fee2e2;
+  --color-badge-red-text: #991b1b;
+  --color-badge-purple: #f3e8ff;
+  --color-badge-purple-text: #6b21a8;
+  --color-badge-amber: #fef3c7;
+  --color-badge-amber-text: #92400e;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-4px); }
+  60%       { transform: translateX(4px); }
+  75%       { transform: translateX(-2px); }
+  90%       { transform: translateX(2px); }
+}
+
+.animate-shake {
+  animation: shake 0.45s ease-in-out;
+}
+

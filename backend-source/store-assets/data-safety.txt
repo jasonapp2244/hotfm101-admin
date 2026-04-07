@@ -1,0 +1,176 @@
+======================================
+GOOGLE PLAY DATA SAFETY FORM
+Hot 101.5 Radio (com.appscrub.hotfm)
+Developer: AppScrub
+======================================
+
+====== OVERVIEW ======
+
+Does your app collect or share any of the required user data types?
+Yes
+
+Is all of the user data collected by your app encrypted in transit?
+Yes
+
+Do you provide a way for users to request that their data is deleted?
+Yes (via app settings and support@appscrub.com)
+
+
+====== DATA COLLECTED ======
+
+----------------------------------------------------------------------
+1. LOCATION
+----------------------------------------------------------------------
+
+Data type: Approximate location
+  - Collected: Yes
+  - Shared: No
+  - Ephemeral: Yes (processed in real-time, not stored)
+  - Required: No (optional, user must grant permission)
+  - Purpose: App functionality (location-based deals and events), Advertising or marketing
+
+Data type: Precise location
+  - Collected: Yes
+  - Shared: No
+  - Ephemeral: Yes (processed in real-time, not stored)
+  - Required: No (optional, user must grant permission)
+  - Purpose: App functionality (location-based deals and events), Advertising or marketing
+
+----------------------------------------------------------------------
+2. PERSONAL INFORMATION
+----------------------------------------------------------------------
+
+Data type: Name
+  - Collected: Yes
+  - Shared: No
+  - Ephemeral: No
+  - Required: Yes (for account creation)
+  - Purpose: App functionality, Account management
+
+Data type: Email address
+  - Collected: Yes
+  - Shared: No
+  - Ephemeral: No
+  - Required: Yes (for account creation)
+  - Purpose: App functionality, Account management, Developer communications
+
+Data type: Phone number
+  - Collected: Yes
+  - Shared: No
+  - Ephemeral: No
+  - Required: No (optional, for contest winner contact)
+  - Purpose: App functionality (contest administration)
+
+----------------------------------------------------------------------
+3. PHOTOS AND VIDEOS
+----------------------------------------------------------------------
+
+Data type: Videos
+  - Collected: Yes
+  - Shared: Yes (publicly displayed shoutouts within the app)
+  - Ephemeral: No
+  - Required: No (optional, only for shoutout submissions)
+  - Purpose: App functionality (shoutout feature)
+
+----------------------------------------------------------------------
+4. AUDIO
+----------------------------------------------------------------------
+
+Data type: Voice or sound recordings
+  - Collected: Yes
+  - Shared: Yes (as part of shoutout video submissions, publicly displayed)
+  - Ephemeral: No
+  - Required: No (optional, only for shoutout submissions)
+  - Purpose: App functionality (shoutout feature)
+
+----------------------------------------------------------------------
+5. APP ACTIVITY
+----------------------------------------------------------------------
+
+Data type: App interactions
+  - Collected: Yes
+  - Shared: No
+  - Ephemeral: No
+  - Required: No (automatically collected)
+  - Purpose: Analytics, App functionality (personalization)
+
+Data type: In-app search history
+  - Collected: No
+
+Data type: Other user-generated content
+  - Collected: Yes (contest entries, event RSVPs)
+  - Shared: No
+  - Ephemeral: No
+  - Required: No (only when using contests/events features)
+  - Purpose: App functionality
+
+----------------------------------------------------------------------
+6. APP INFO AND PERFORMANCE
+----------------------------------------------------------------------
+
+Data type: Crash logs
+  - Collected: Yes
+  - Shared: No (processed by Firebase Crashlytics)
+  - Ephemeral: No
+  - Required: No (automatically collected)
+  - Purpose: Analytics, App functionality (stability improvement)
+
+Data type: Diagnostics
+  - Collected: Yes
+  - Shared: No
+  - Ephemeral: No
+  - Required: No (automatically collected)
+  - Purpose: Analytics
+
+Data type: Other app performance data
+  - Collected: Yes
+  - Shared: No
+  - Ephemeral: No
+  - Required: No (automatically collected)
+  - Purpose: Analytics
+
+----------------------------------------------------------------------
+7. DEVICE OR OTHER IDS
+----------------------------------------------------------------------
+
+Data type: Device or other IDs
+  - Collected: Yes (Firebase Instance ID, push notification tokens)
+  - Shared: No
+  - Ephemeral: No
+  - Required: No (push notification tokens only with user consent)
+  - Purpose: App functionality (push notifications), Analytics
+
+
+====== DATA SHARED ======
+
+Data type: Videos (shoutout submissions)
+  - Shared with: Other users (publicly displayed within the app)
+  - Purpose: App functionality
+  - Is this data transferred as part of a user-initiated action? Yes
+
+Data type: Voice or sound recordings (part of shoutout video)
+  - Shared with: Other users (publicly displayed within the app)
+  - Purpose: App functionality
+  - Is this data transferred as part of a user-initiated action? Yes
+
+
+====== DATA NOT COLLECTED ======
+
+- Financial information (purchase history, credit card info, etc.)
+- Health and fitness data
+- Messages (email, SMS, other messages)
+- Calendar events
+- Contacts
+- Files and docs
+- Web browsing history
+- Installed apps
+
+
+====== SECURITY PRACTICES ======
+
+Data is encrypted in transit: Yes (TLS/SSL)
+Data is encrypted at rest: Yes (Firebase infrastructure)
+Data can be deleted by user: Yes (account deletion via app settings or support@appscrub.com)
+Data deletion request response time: Within 30 days
+Committed to Play Families Policy: No (app not targeted at children)
+Independent security review: No

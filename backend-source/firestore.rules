@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Check if user exists in users collection (UID as doc ID) — listeners are blocked at app level
+    function isAdmin() {
+      return isAuth() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Articles - public read, admin write
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Contests - public read, admin write
+    match /contests/{contestId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Events - public read, admin write
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Shoutouts - public read, admin manages all
+    match /shoutouts/{shoutoutId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Notifications - public read, admin write
+    match /notifications/{notifId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Ads - public read, admin write
+    match /ads/{adId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Broadcasts - public read, admin write
+    match /broadcasts/{broadcastId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Ad Analytics - admin only
+    match /adAnalytics/{adId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Activity Log - admin only
+    match /activityLog/{logId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Admins collection - admin can read their own doc; no writes via client
+    match /admins/{uid} {
+      allow read: if isAuth() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Contest entries
+    match /contestEntries/{entryId} {
+      allow read: if true;
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+
+    // Event RSVPs
+    match /eventRsvps/{rsvpId} {
+      allow read: if true;
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+
+    // Shoutout submissions from mobile users
+    match /shoutoutSubmissions/{subId} {
+      allow read: if isAdmin();
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+
+    // Ad analytics events logged by mobile app
+    match /adEvents/{eventId} {
+      allow read: if isAdmin();
+      allow create: if true;
+    }
+  }
+}

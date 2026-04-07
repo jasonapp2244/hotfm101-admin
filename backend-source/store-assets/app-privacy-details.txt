@@ -1,0 +1,199 @@
+======================================
+APPLE APP PRIVACY DETAILS
+Hot 101.5 Radio (com.appscrub.hotfm)
+Developer: AppScrub
+======================================
+
+====== PRIVACY PRACTICES OVERVIEW ======
+
+Does your app track users?
+No. The app does not track users across other companies' apps or websites
+for advertising or advertising measurement purposes.
+
+Do you or your third-party partners collect data from this app?
+Yes.
+
+Privacy Nutrition Label URL: https://hotfm1015.com/privacy-policy
+
+
+====== DATA LINKED TO YOUR IDENTITY ======
+
+The following data is collected and linked to your identity:
+
+1. Contact Info
+   - Name (used for: App Functionality)
+   - Email Address (used for: App Functionality)
+   - Phone Number (used for: App Functionality - contest winner contact, optional)
+
+2. User Content
+   - Audio Data (used for: App Functionality - shoutout submissions)
+   - Video Data (used for: App Functionality - shoutout submissions)
+   - Other User Content (used for: App Functionality - contest entries, RSVPs)
+
+
+====== DATA NOT LINKED TO YOUR IDENTITY ======
+
+The following data is collected but not linked to your identity:
+
+1. Location
+   - Precise Location (used for: App Functionality - location-based deals)
+   - Coarse Location (used for: App Functionality - location-based deals)
+
+2. Usage Data
+   - Product Interaction (used for: Analytics)
+
+3. Diagnostics
+   - Crash Data (used for: App Functionality - stability improvement)
+   - Performance Data (used for: App Functionality)
+
+4. Identifiers
+   - Device ID (used for: App Functionality - push notifications)
+
+
+====== DATA NOT COLLECTED ======
+
+The following data types are NOT collected:
+
+- Financial Info (payment info, credit card info)
+- Health & Fitness
+- Sensitive Info
+- Contacts
+- Browsing History
+- Search History
+- Purchases
+- Emails or Messages
+
+
+====== DETAILED BREAKDOWN BY DATA TYPE ======
+
+----------------------------------------------------------------------
+1. CONTACT INFO
+----------------------------------------------------------------------
+
+Name
+  - Collection: Required for account creation
+  - Linked to identity: Yes
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+Email Address
+  - Collection: Required for account creation
+  - Linked to identity: Yes
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+Phone Number
+  - Collection: Optional (contest entries only)
+  - Linked to identity: Yes
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+----------------------------------------------------------------------
+2. LOCATION
+----------------------------------------------------------------------
+
+Precise Location
+  - Collection: Optional (user must grant permission)
+  - Linked to identity: No
+  - Used for tracking: No
+  - Purposes: App Functionality (location-based deals and nearby events)
+  - Note: Processed in real-time, not persistently stored
+
+Coarse Location
+  - Collection: Optional (user must grant permission)
+  - Linked to identity: No
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+----------------------------------------------------------------------
+3. USER CONTENT
+----------------------------------------------------------------------
+
+Audio Data
+  - Collection: Optional (shoutout recording only)
+  - Linked to identity: Yes
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+Video Data (Photos or Videos)
+  - Collection: Optional (shoutout recording only)
+  - Linked to identity: Yes
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+Other User Content
+  - Collection: Optional (contest entries, event RSVPs)
+  - Linked to identity: Yes
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+----------------------------------------------------------------------
+4. USAGE DATA
+----------------------------------------------------------------------
+
+Product Interaction
+  - Collection: Automatic
+  - Linked to identity: No
+  - Used for tracking: No
+  - Purposes: Analytics
+
+----------------------------------------------------------------------
+5. DIAGNOSTICS
+----------------------------------------------------------------------
+
+Crash Data
+  - Collection: Automatic (via Firebase Crashlytics)
+  - Linked to identity: No
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+Performance Data
+  - Collection: Automatic
+  - Linked to identity: No
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+----------------------------------------------------------------------
+6. IDENTIFIERS
+----------------------------------------------------------------------
+
+Device ID
+  - Collection: Automatic (Firebase Instance ID for push notifications)
+  - Linked to identity: No
+  - Used for tracking: No
+  - Purposes: App Functionality
+
+
+====== THIRD-PARTY SDKs ======
+
+1. Firebase (Google)
+   - Data collected: Device ID, Crash Data, Performance Data, Product Interaction
+   - Purpose: Analytics, Push Notifications, Authentication, Crash Reporting
+   - Privacy policy: https://firebase.google.com/support/privacy
+
+2. YouTube API (Google)
+   - Data collected: Product Interaction (video viewing)
+   - Purpose: App Functionality (video content delivery)
+   - Privacy policy: https://policies.google.com/privacy
+
+
+====== REQUIRED REASON APIs (iOS 17+) ======
+
+If the app uses any Required Reason APIs, declare them here:
+
+- UserDefaults: Used for storing app preferences (theme selection, notification settings)
+  Reason: CA92.1 - Access to user defaults for app functionality
+
+- File timestamp APIs: Not used
+- System boot time APIs: Not used
+- Disk space APIs: Not used
+
+
+====== NOTES FOR APP STORE CONNECT ======
+
+When filling out the App Privacy section in App Store Connect:
+1. Select "Yes" for "Do you or your third-party partners collect data from this app?"
+2. Select "No" for tracking (app does not track across other apps/websites)
+3. Add each data type listed above under the appropriate category
+4. For each data type, specify whether it is linked to identity or not
+5. Ensure the privacy policy URL is set to: https://hotfm1015.com/privacy-policy

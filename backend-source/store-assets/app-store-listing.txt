@@ -1,0 +1,126 @@
+======================================
+APPLE APP STORE LISTING
+Hot 101.5 Radio - Hot FM 101.5
+Bundle ID: com.appscrub.hotfm
+Developer: AppScrub
+======================================
+
+------ APP NAME (30 characters max) ------
+
+Hot 101.5 Radio
+
+
+------ SUBTITLE (30 characters max) ------
+
+Live Music, Contests & Deals
+
+
+------ DESCRIPTION ------
+
+Hot 101.5 Radio brings your favorite station straight to your iPhone. Stream live radio anywhere, stay on top of music news, enter contests to win amazing prizes, and discover events and deals happening right in your neighborhood.
+
+LIVE STREAMING
+Tune in to Hot FM 101.5 with crystal-clear audio streaming. Listen while you commute, work out, or relax. Background playback keeps the music going while you use other apps. Choose dark or light theme to match your style.
+
+MUSIC NEWS
+Stay current with the latest music news, artist updates, and entertainment stories. From breaking headlines to features, we keep you informed about the artists and music you love.
+
+CONTESTS & GIVEAWAYS
+Enter exclusive contests for a chance to win concert tickets, meet-and-greets, gift cards, and more. Push notification alerts make sure you never miss a chance to win.
+
+EVENTS
+Discover concerts, station events, and community happenings near you. RSVP directly from the app, see full event details, and get reminders so you never miss out.
+
+LOCAL DEALS
+Enable location services to unlock deals from businesses near you. Find savings on dining, shopping, and entertainment right in your neighborhood.
+
+VIDEO & PODCASTS
+Watch video broadcasts, artist interviews, behind-the-scenes content, and podcast episodes via YouTube. Access exclusive station content whenever you want.
+
+SHOUTOUTS
+Record and submit a 30-second video shoutout to be featured on the station. Send birthday wishes, dedicate a song, or show your love for Hot 101.5.
+
+PUSH NOTIFICATIONS
+Get real-time alerts for breaking news, new contests, upcoming events, local deals, and station updates.
+
+Download now and take Hot 101.5 everywhere you go.
+
+Questions? Email support@appscrub.com
+
+
+------ KEYWORDS (100 characters max, comma-separated) ------
+
+radio,hot101,live,streaming,music,contests,prizes,events,deals,shoutout,FM,podcast,news,local
+
+
+------ PRIMARY CATEGORY ------
+
+Music
+
+
+------ SECONDARY CATEGORY ------
+
+Entertainment
+
+
+------ AGE RATING ------
+
+Rating: 12+
+Reasons:
+  - Infrequent/Mild Mature/Suggestive Themes (user-generated shoutout content, moderated)
+
+Age Rating Questionnaire:
+  - Made for Kids: No
+  - Cartoon or Fantasy Violence: None
+  - Realistic Violence: None
+  - Sexual Content or Nudity: None
+  - Profanity or Crude Humor: None (content is moderated)
+  - Alcohol, Tobacco, or Drug Use: None
+  - Simulated Gambling: None
+  - Horror/Fear Themes: None
+  - Mature/Suggestive Themes: Infrequent/Mild
+  - Medical/Treatment Information: None
+  - Unrestricted Web Access: No
+  - Gambling and Contests: Infrequent/Mild (contests with prizes, no purchase required)
+
+
+------ WHAT'S NEW (for version 1.0.0) ------
+
+Welcome to Hot 101.5 Radio! This is our first release, and we're thrilled to bring you:
+
+- Live radio streaming with background playback
+- Music news and entertainment articles
+- Contests and giveaways with real prizes
+- Local events with RSVP
+- Location-based deals from nearby businesses
+- Video broadcasts and podcasts via YouTube
+- 30-second shoutout video submissions
+- Push notifications for everything that matters
+- Dark and light theme support
+
+We'd love to hear from you! Send feedback to support@appscrub.com.
+
+
+------ APP REVIEW INFORMATION ------
+
+Notes for Reviewer:
+The app streams live radio from Hot FM 101.5. Key features to test:
+1. Live streaming: Tap the play button on the home screen to begin streaming.
+2. Shoutouts: Navigate to the Shoutouts tab and tap "Record" to test camera/microphone access. Videos are limited to 30 seconds.
+3. Location: Allow location access when prompted to see local deals and nearby events.
+4. Push notifications: Allow notifications when prompted to receive contest and event alerts.
+5. YouTube content: Navigate to the Videos tab to view embedded YouTube content.
+
+Demo Account (if required):
+Email: reviewer@appscrub.com
+Password: AppReview2026!
+
+
+------ CONTACT DETAILS ------
+
+Developer: AppScrub
+Email: support@appscrub.com
+Website: https://hotfm1015.com
+Privacy Policy URL: https://hotfm1015.com/privacy-policy
+Support URL: https://hotfm1015.com/support
+Marketing URL: https://hotfm1015.com

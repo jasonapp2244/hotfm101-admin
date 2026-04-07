@@ -1,0 +1,15 @@
+# Firebase service account key — NEVER commit this
+backend-source/serviceAccountKey.json
+serviceAccountKey.json
+*firebase-adminsdk*.json
+
+# Firebase cache
+.firebase/
+
+# Node modules
+node_modules/
+
+# Env files
+.env
+.env.local
+.env.production

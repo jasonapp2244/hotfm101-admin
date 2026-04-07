@@ -1,0 +1,37 @@
+{
+  "firestore": {
+    "database": "(default)",
+    "location": "nam5",
+    "rules": "backend-source/firestore.rules",
+    "indexes": "backend-source/firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "backend-source/storage.rules"
+  },
+  "functions": {
+    "source": "backend-source/functions"
+  },
+  "hosting": {
+    "site": "hotfm101-admin",
+    "public": "admin-panel-source/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/assets/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      }
+    ]
+  }
+}
