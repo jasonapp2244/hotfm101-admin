@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
-import { Mail, Lock, EyeOff, Eye, Shield, HelpCircle, Radio, AlertCircle, X } from 'lucide-react'
+import { Mail, Lock, EyeOff, Eye, Radio, AlertCircle, X } from 'lucide-react'
 
 const FIREBASE_ERRORS = {
   'auth/user-not-found':         'No account found with this email address.',
@@ -90,7 +90,7 @@ export default function Login() {
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <Radio className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-primary">Sonic Command</span>
+            <span className="text-xl font-bold text-primary">Hot FM 101.5</span>
           </div>
           <h1 className="text-5xl font-extrabold text-primary leading-tight">
             Master your<br />
@@ -186,22 +186,6 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-4 text-xs font-semibold text-gray-400 uppercase tracking-widest">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-              <Shield className="w-4 h-4 text-gray-500" /> SSO
-            </button>
-            <button className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-              <HelpCircle className="w-4 h-4 text-gray-500" /> Support
-            </button>
-          </div>
 
           <div className="mt-8 text-center">
             <p className="text-xs text-gray-400">Access restricted to authorized Hot 101.5 personnel.</p>

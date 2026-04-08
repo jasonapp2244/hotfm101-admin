@@ -103,5 +103,23 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if true;
     }
+
+    // Email queue — admin can create & read; Cloud Function (admin SDK) writes status back
+    match /emailQueue/{emailId} {
+      allow create: if isAdmin();
+      allow read:   if isAdmin();
+      allow update, delete: if false; // only Cloud Function updates via admin SDK
+    }
+
+    // Settings (Privacy Policy, etc.) - public read, admin write
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      match /versions/{versionId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
   }
 }

@@ -2,6 +2,7 @@ const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { initializeApp } = require("firebase-admin/app");
 const { getMessaging } = require("firebase-admin/messaging");
 const { getFirestore } = require("firebase-admin/firestore");
+const nodemailer = require("nodemailer");
 
 initializeApp();
 
@@ -107,4 +108,76 @@ exports.sendBroadcastNotification = onDocumentCreated("broadcasts/{bcId}", async
 
   await getMessaging().sendEachForMulticast({ ...message, tokens });
   console.log(`Broadcast notification sent to ${tokens.length} devices`);
+});
+
+// ── Shoutout Approval Email ────────────────────────────────────────────────────
+// Triggered when admin writes a document to the emailQueue collection.
+// Sends an SMTP email via Nodemailer using credentials from functions/.env,
+// then updates the queue doc status and marks the shoutout as emailed.
+exports.sendApprovalEmail = onDocumentCreated("emailQueue/{emailId}", async (event) => {
+  const data = event.data.data();
+  const db   = getFirestore();
+  const emailRef = event.data.ref;
+
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  if (!smtpUser || !smtpPass) {
+    console.error("SMTP_USER / SMTP_PASS not set in functions/.env");
+    await emailRef.update({ status: "failed", error: "SMTP credentials not configured on server." });
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: { user: smtpUser, pass: smtpPass },
+  });
+
+  // Build a simple HTML version of the plain-text message
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: linear-gradient(135deg, #e11d48, #f97316); padding: 24px; border-radius: 12px 12px 0 0;">
+        <h1 style="color: #fff; margin: 0; font-size: 22px;">🎙️ Hot FM 101.5</h1>
+      </div>
+      <div style="background: #fff; border: 1px solid #e5e7eb; border-top: none; padding: 28px; border-radius: 0 0 12px 12px;">
+        <pre style="font-family: Arial, sans-serif; white-space: pre-wrap; color: #374151; line-height: 1.6; margin: 0;">${data.message}</pre>
+      </div>
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 16px;">
+        © Hot FM 101.5 · This email was sent by the Hot FM Admin Panel
+      </p>
+    </div>`;
+
+  try {
+    await transporter.sendMail({
+      from:    `"Hot FM 101.5" <${smtpUser}>`,
+      to:      `"${data.toName}" <${data.to}>`,
+      subject: data.subject,
+      text:    data.message,
+      html:    htmlBody,
+    });
+
+    // Mark queue document as sent
+    await emailRef.update({
+      status: "sent",
+      sentAt: new Date().toISOString(),
+    });
+
+    // Mark the shoutout itself as emailed
+    if (data.shoutoutId) {
+      await db.collection("shoutouts").doc(data.shoutoutId).update({
+        emailSent:   true,
+        emailSentAt: new Date().toISOString(),
+      });
+    }
+
+    console.log(`[sendApprovalEmail] Email sent to ${data.to} for shoutout ${data.shoutoutId}`);
+  } catch (err) {
+    console.error("[sendApprovalEmail] SMTP error:", err);
+    await emailRef.update({
+      status: "failed",
+      error:  err.message || "Unknown SMTP error",
+    });
+  }
 });

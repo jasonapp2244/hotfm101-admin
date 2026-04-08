@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Send, Download, SlidersHorizontal, Pause, Volume2 } from 'lucide-react'
+import { Send, Download, SlidersHorizontal } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useData } from '../contexts/DataContext'
 import { useToast } from '../contexts/ToastContext'
@@ -58,8 +58,31 @@ export default function Notifications() {
       addToast('Title and message are required.', 'error')
       return
     }
-    addNotification({ title, message, target, sentBy: user?.name || 'Admin' })
-    addToast('Notification sent successfully!', 'success')
+    if (schedule === 'LATER') {
+      if (!scheduledTime) {
+        addToast('Please pick a scheduled date & time.', 'error')
+        return
+      }
+      if (new Date(scheduledTime) <= new Date()) {
+        addToast('Scheduled time must be in the future.', 'error')
+        return
+      }
+    }
+    addNotification({
+      title,
+      message,
+      target,
+      sentBy: user?.name || 'Admin',
+      schedule,
+      scheduledAt: schedule === 'LATER' ? scheduledTime : null,
+      status: schedule === 'LATER' ? 'scheduled' : 'sent',
+    })
+    addToast(
+      schedule === 'LATER'
+        ? `Notification scheduled for ${new Date(scheduledTime).toLocaleString()}`
+        : 'Notification sent successfully!',
+      'success'
+    )
     setTitle('')
     setMessage('')
     setSchedule('NOW')
@@ -152,7 +175,8 @@ export default function Notifications() {
               onClick={handleSend}
               className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-accent to-indigo-500 text-white rounded-xl text-sm font-semibold hover:from-accent-hover hover:to-indigo-600 cursor-pointer"
             >
-              <Send className="w-4 h-4" /> Send to All Listeners
+              <Send className="w-4 h-4" />
+              {schedule === 'LATER' ? 'Schedule Notification' : 'Send to All Listeners'}
             </button>
           </div>
         </div>
@@ -233,8 +257,17 @@ export default function Notifications() {
                   <span className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md ${targetColors[n.target] || 'bg-gray-100 text-gray-600'}`}>{n.target}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-700">{formatDate(n.date)}</div>
-                  <div className="text-xs text-gray-400">{formatTime(n.date)}</div>
+                  {n.status === 'scheduled' && n.scheduledAt ? (
+                    <>
+                      <div className="text-sm text-gray-700">{formatDate(n.scheduledAt)}</div>
+                      <div className="text-xs text-amber-500 font-semibold">Scheduled · {formatTime(n.scheduledAt)}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-sm text-gray-700">{formatDate(n.date)}</div>
+                      <div className="text-xs text-gray-400">{formatTime(n.date)}</div>
+                    </>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
@@ -266,27 +299,6 @@ export default function Notifications() {
         />
       </div>
 
-      {/* Now Playing Bar */}
-      <div className="bg-gradient-to-r from-red-600 to-primary rounded-2xl px-6 py-3 flex items-center justify-between text-white mt-8">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-            <div className="flex gap-0.5">{[...Array(5)].map((_, i) => <div key={i} className="w-0.5 bg-white/60 rounded-full" style={{ height: `${8 + Math.random() * 12}px` }} />)}</div>
-          </div>
-          <div>
-            <div className="text-[9px] font-bold uppercase tracking-widest text-white/50">Currently On-Air</div>
-            <div className="text-sm font-semibold">The Midnight Remix &mdash; DJ Nova ft. Luna</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="w-24 bg-white/10 rounded-full h-1"><div className="bg-accent h-1 rounded-full" style={{ width: '45%' }} /></div>
-          <Volume2 className="w-4 h-4 text-white/40" />
-          <div className="text-right">
-            <div className="text-[9px] font-bold uppercase tracking-widest text-white/50">Listeners</div>
-            <div className="text-sm font-bold text-emerald-400">14,293</div>
-          </div>
-          <button className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"><Pause className="w-5 h-5" /></button>
-        </div>
-      </div>
     </Layout>
   )
 }

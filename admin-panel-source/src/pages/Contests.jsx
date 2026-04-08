@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   PlusCircle, Download, Filter, Trophy, Users, DollarSign, TrendingUp,
-  MoreVertical, Pencil, Trash2, Pause, Volume2
+  MoreVertical, Pencil, Trash2, X
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useData } from '../contexts/DataContext'
@@ -33,13 +33,60 @@ export default function Contests() {
   const [entriesContest, setEntriesContest] = useState(null)
   const [showEntries, setShowEntries] = useState(false)
   const [actionMenuId, setActionMenuId] = useState(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filters, setFilters] = useState({ sort: 'default', minValue: '', maxValue: '', minEntries: '' })
+  const filterRef = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const activeFilterCount = [
+    filters.sort !== 'default',
+    filters.minValue !== '',
+    filters.maxValue !== '',
+    filters.minEntries !== '',
+  ].filter(Boolean).length
+
+  const clearFilters = () => setFilters({ sort: 'default', minValue: '', maxValue: '', minEntries: '' })
 
   const tabFiltered = useMemo(() =>
     contests.filter(c => c.status === activeTab), [contests, activeTab])
 
-  const { query, setQuery, filteredItems } = useSearch(tabFiltered, ['name'])
+  const { query, setQuery, filteredItems: searched } = useSearch(tabFiltered, ['name'])
+
+  const filteredItems = useMemo(() => {
+    let result = [...searched]
+
+    // Prize value range
+    if (filters.minValue !== '') result = result.filter(c => (c.value || 0) >= Number(filters.minValue))
+    if (filters.maxValue !== '') result = result.filter(c => (c.value || 0) <= Number(filters.maxValue))
+
+    // Min entries
+    if (filters.minEntries !== '') result = result.filter(c => (c.entries?.length || 0) >= Number(filters.minEntries))
+
+    // Sort
+    switch (filters.sort) {
+      case 'name_asc':    result.sort((a, b) => a.name.localeCompare(b.name)); break
+      case 'name_desc':   result.sort((a, b) => b.name.localeCompare(a.name)); break
+      case 'value_desc':  result.sort((a, b) => (b.value || 0) - (a.value || 0)); break
+      case 'value_asc':   result.sort((a, b) => (a.value || 0) - (b.value || 0)); break
+      case 'entries_desc':result.sort((a, b) => (b.entries?.length || 0) - (a.entries?.length || 0)); break
+      case 'start_asc':   result.sort((a, b) => new Date(a.start) - new Date(b.start)); break
+      default: break
+    }
+
+    return result
+  }, [searched, filters])
 
   const { currentPage, setCurrentPage, paginatedItems, totalPages, totalItems, startIndex, endIndex } = usePagination(filteredItems, 10)
+
+  // Reset to page 1 whenever filters or tab changes
+  useEffect(() => { setCurrentPage(1) }, [filters, activeTab, query])
 
   // Stats
   const activeCount = contests.filter(c => c.status === 'Active').length
@@ -105,9 +152,99 @@ export default function Contests() {
           <button onClick={handleExport} className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
             <Download className="w-4 h-4" /> Export CSV
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-            <Filter className="w-4 h-4" /> Filter
-          </button>
+          <div className="relative" ref={filterRef}>
+            <button
+              onClick={() => setFilterOpen(prev => !prev)}
+              className={`flex items-center gap-2 px-5 py-2.5 border rounded-xl text-sm font-medium transition-colors ${
+                filterOpen || activeFilterCount > 0
+                  ? 'border-accent text-accent bg-accent/5'
+                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Filter className="w-4 h-4" /> Filter
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
+            {filterOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 z-30 p-4 space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Filter & Sort</p>
+                  {activeFilterCount > 0 && (
+                    <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 font-medium">
+                      <X className="w-3 h-3" /> Clear all
+                    </button>
+                  )}
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Sort by</label>
+                  <select
+                    value={filters.sort}
+                    onChange={e => setFilters(p => ({ ...p, sort: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  >
+                    <option value="default">Default</option>
+                    <option value="name_asc">Name A → Z</option>
+                    <option value="name_desc">Name Z → A</option>
+                    <option value="value_desc">Prize Value: High → Low</option>
+                    <option value="value_asc">Prize Value: Low → High</option>
+                    <option value="entries_desc">Most Entries</option>
+                    <option value="start_asc">Start Date: Earliest</option>
+                  </select>
+                </div>
+
+                {/* Prize value range */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Prize Value ($)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Min"
+                      value={filters.minValue}
+                      onChange={e => setFilters(p => ({ ...p, minValue: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    />
+                    <span className="text-gray-400 text-xs">to</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Max"
+                      value={filters.maxValue}
+                      onChange={e => setFilters(p => ({ ...p, maxValue: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    />
+                  </div>
+                </div>
+
+                {/* Min entries */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Minimum Entries</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 5"
+                    value={filters.minEntries}
+                    onChange={e => setFilters(p => ({ ...p, minEntries: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  />
+                </div>
+
+                <button
+                  onClick={() => setFilterOpen(false)}
+                  className="w-full py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:bg-accent-hover transition-colors"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-medium hover:bg-accent-hover">
             <PlusCircle className="w-4 h-4" /> Create New Contest
           </button>
@@ -247,24 +384,6 @@ export default function Contests() {
           onPageChange={setCurrentPage}
           label="contests"
         />
-      </div>
-
-      {/* Now Playing Bar */}
-      <div className="bg-primary rounded-2xl px-6 py-4 flex items-center justify-between text-white">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center"><div className="w-5 h-5 bg-white/30 rounded-full" /></div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">On Air Now</div>
-            <div className="text-sm font-semibold">Midnight Grooves &mdash; DJ Sonic</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="w-48 bg-white/10 rounded-full h-1.5"><div className="bg-accent h-1.5 rounded-full" style={{ width: '65%' }} /></div>
-          <span className="text-xs text-white/60">03:45 / 05:20</span>
-          <Volume2 className="w-4 h-4 text-white/60" />
-          <div className="w-20 bg-white/10 rounded-full h-1"><div className="bg-white h-1 rounded-full" style={{ width: '70%' }} /></div>
-          <button className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"><Pause className="w-5 h-5" /></button>
-        </div>
       </div>
 
       {/* Modals */}

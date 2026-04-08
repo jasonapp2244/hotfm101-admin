@@ -21,6 +21,43 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* ── Dark mode ──────────────────────────────────────────────────────────────
+   All Tailwind v4 color utilities reference CSS variables, so overriding
+   them here re-themes every component without touching individual files.
+─────────────────────────────────────────────────────────────────────────── */
+html.dark {
+  color-scheme: dark;
+
+  /* Tailwind base grays — light → dark mapping */
+  --color-white:    #13141f;
+  --color-gray-50:  #1c1d2e;
+  --color-gray-100: #252637;
+  --color-gray-200: #30314a;
+  --color-gray-300: #3e3f5c;
+  --color-gray-400: #6b6c8e;
+  --color-gray-500: #9293b0;
+  --color-gray-600: #b4b5ce;
+  --color-gray-700: #cccdea;
+  --color-gray-800: #dddeed;
+  --color-gray-900: #f0f0fb;
+
+  /* Custom theme tokens */
+  --color-primary:       #818cf8;
+  --color-primary-light: #a5b4fc;
+  --color-sidebar-bg:    #13141f;
+  --color-card-border:   #2a2b3d;
+}
+
+/*
+  Elements that are intentionally dark (dark-navy cards) must keep
+  true white for text/icons regardless of the theme mode.
+  Restoring --color-white locally means text-white / bg-white inside
+  these containers always resolves to #ffffff.
+*/
+html.dark .bg-dark-navy {
+  --color-white: #ffffff;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);

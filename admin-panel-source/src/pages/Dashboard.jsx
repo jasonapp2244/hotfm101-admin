@@ -1,11 +1,12 @@
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Trophy, CalendarDays, FileCheck, Send,
-  UserPlus, Mic, PenLine, Bell, Pause
+  UserPlus, Mic, PenLine, Bell, Search
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useData } from '../contexts/DataContext'
-import { formatRelativeTime } from '../utils/formatters'
+import { formatRelativeTime, formatDate } from '../utils/formatters'
 
 const iconMap = {
   user: UserPlus,
@@ -27,6 +28,7 @@ const iconBgMap = {
 export default function Dashboard() {
   const { users, contests, events, shoutouts, notifications, activityLog } = useData()
   const navigate = useNavigate()
+  const [query, setQuery] = useState('')
 
   const today = new Date().toISOString().split('T')[0]
   const activeContests = contests.filter(c => c.status === 'Active').length
@@ -45,7 +47,37 @@ export default function Dashboard() {
     { icon: Send, label: 'PUSHES TODAY', value: String(todayNotifs).padStart(2, '0'), badge: 'Goal Met', badgeColor: 'text-emerald-600', borderColor: 'border-t-violet-500' },
   ]
 
-  const recentActivity = activityLog.slice(0, 5)
+  // Activity log — filtered by search query
+  const filteredActivity = useMemo(() => {
+    const log = activityLog.slice(0, 20)
+    if (!query.trim()) return log.slice(0, 5)
+    const q = query.toLowerCase()
+    return log.filter(item =>
+      item.text?.toLowerCase().includes(q) ||
+      item.type?.toLowerCase().includes(q) ||
+      item.badge?.toLowerCase().includes(q)
+    )
+  }, [activityLog, query])
+
+  // Global quick-search results across users, contests, events
+  const searchResults = useMemo(() => {
+    if (!query.trim()) return []
+    const q = query.toLowerCase()
+    const results = []
+    users.forEach(u => {
+      if (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
+        results.push({ label: u.name, sub: u.email, path: '/users', kind: 'User' })
+    })
+    contests.forEach(c => {
+      if (c.name?.toLowerCase().includes(q) || c.prize?.toLowerCase().includes(q))
+        results.push({ label: c.name, sub: c.status, path: '/contests', kind: 'Contest' })
+    })
+    events.forEach(e => {
+      if (e.name?.toLowerCase().includes(q) || e.location?.toLowerCase().includes(q))
+        results.push({ label: e.name, sub: formatDate(e.date), path: '/events', kind: 'Event' })
+    })
+    return results.slice(0, 6)
+  }, [query, users, contests, events])
 
   const quickActions = [
     { icon: PenLine, label: 'Write Article', path: '/content' },
@@ -54,9 +86,48 @@ export default function Dashboard() {
   ]
 
   return (
-    <Layout breadcrumb={['Admin', 'Dashboard Overview']} searchPlaceholder="Search the station archive...">
+    <Layout
+      breadcrumb={['Admin', 'Dashboard Overview']}
+      searchPlaceholder="Search users, contests, events..."
+      searchValue={query}
+      onSearchChange={setQuery}
+    >
       <h2 className="text-3xl font-extrabold text-primary mb-1">Morning Shift Status</h2>
       <p className="text-gray-500 mb-8">Pulse check for Hot 101.5 broadcast operations and digital engagement.</p>
+
+      {/* Global search results */}
+      {query.trim() && (
+        <div className="mb-8 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+            <Search className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-semibold text-gray-600">
+              Results for <span className="text-primary">"{query}"</span>
+            </span>
+            <span className="ml-auto text-xs text-gray-400">{searchResults.length} found</span>
+          </div>
+          {searchResults.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-gray-400">No results found for "{query}"</div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {searchResults.map((r, i) => (
+                <button
+                  key={i}
+                  onClick={() => { navigate(r.path); setQuery('') }}
+                  className="w-full flex items-center gap-4 px-5 py-3 hover:bg-gray-50 text-left transition-colors"
+                >
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
+                    r.kind === 'User' ? 'bg-blue-100 text-blue-700' :
+                    r.kind === 'Contest' ? 'bg-indigo-100 text-indigo-700' :
+                    'bg-amber-100 text-amber-700'
+                  }`}>{r.kind}</span>
+                  <span className="text-sm font-semibold text-primary">{r.label}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{r.sub}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-5 gap-4 mb-8">
@@ -78,12 +149,20 @@ export default function Dashboard() {
         {/* Live Stream Activity */}
         <div className="col-span-2 bg-white rounded-xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-primary">Live Stream Activity</h3>
-            <button className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600">View History</button>
+            <h3 className="text-lg font-bold text-primary">
+              {query.trim() ? `Activity matching "${query}"` : 'Live Stream Activity'}
+            </h3>
+            {!query.trim() && (
+              <button className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600">View History</button>
+            )}
           </div>
           <div className="space-y-5">
-            {recentActivity.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No recent activity.</p>}
-            {recentActivity.map((item) => {
+            {filteredActivity.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4">
+                {query.trim() ? `No activity matching "${query}"` : 'No recent activity.'}
+              </p>
+            )}
+            {filteredActivity.map((item) => {
               const Icon = iconMap[item.type] || Send
               const bg = iconBgMap[item.type] || 'bg-gray-50 text-gray-600'
               return (
@@ -124,32 +203,24 @@ export default function Dashboard() {
 
           <div className="bg-dark-navy rounded-xl p-6 text-white">
             <h3 className="text-lg font-bold mb-2">Engage Pulse</h3>
-            <p className="text-sm text-gray-300 mb-4">
+            <p className="text-sm text-white/70 mb-4">
               Listener engagement is up <strong className="text-white">18.4%</strong> since the "Summer Jams" rollout.
             </p>
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold">
-                <span className="uppercase tracking-wider text-gray-400">Mobile App</span>
-                <span>72%</span>
+                <span className="uppercase tracking-wider text-white/50">Mobile App</span>
+                <span className="text-white">72%</span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-1.5">
                 <div className="bg-accent h-1.5 rounded-full" style={{ width: '72%' }} />
               </div>
               <div className="flex justify-between text-xs font-semibold mt-3">
-                <span className="uppercase tracking-wider text-gray-400">Web Player</span>
-                <span>28%</span>
+                <span className="uppercase tracking-wider text-white/50">Web Player</span>
+                <span className="text-white">28%</span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-1.5">
                 <div className="bg-indigo-400 h-1.5 rounded-full" style={{ width: '28%' }} />
               </div>
-            </div>
-            <div className="mt-5 bg-white/10 rounded-xl p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">On Air Now</div>
-                <div className="text-sm font-semibold truncate">Solaris - Midnight City</div>
-              </div>
-              <Pause className="w-5 h-5 text-white shrink-0" />
             </div>
           </div>
         </div>

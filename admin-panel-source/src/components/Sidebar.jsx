@@ -3,19 +3,21 @@ import { useAuth, canAccess } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
 import {
   LayoutDashboard, Users, FileText, Trophy, CalendarDays,
-  MessageCircle, Bell, Megaphone, Video, HelpCircle, LogOut, Radio
+  MessageCircle, Bell, Megaphone, Video, LogOut, Radio, ScrollText, ShieldCheck,
 } from 'lucide-react'
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard',     path: '/dashboard'   },
-  { icon: Users,           label: 'Users',          path: '/users'       },
-  { icon: FileText,        label: 'Content',        path: '/content'     },
-  { icon: Trophy,          label: 'Contests',       path: '/contests'    },
-  { icon: CalendarDays,    label: 'Events',         path: '/events'      },
-  { icon: MessageCircle,   label: 'Shoutouts',      path: '/shoutouts',  badgeKey: 'shoutouts' },
-  { icon: Megaphone,       label: 'Ads',            path: '/ads'         },
-  { icon: Video,           label: 'Broadcasting',   path: '/broadcasting'},
-  { icon: Bell,            label: 'Notifications',  path: '/notifications'},
+  { icon: LayoutDashboard, label: 'Dashboard',      path: '/dashboard'       },
+  { icon: Users,           label: 'Users',           path: '/users'           },
+  { icon: FileText,        label: 'Content',         path: '/content'         },
+  { icon: Trophy,          label: 'Contests',        path: '/contests'        },
+  { icon: CalendarDays,    label: 'Events',          path: '/events'          },
+  { icon: MessageCircle,   label: 'Shoutouts',       path: '/shoutouts',      badgeKey: 'shoutouts' },
+  { icon: Megaphone,       label: 'Ads',             path: '/ads'             },
+  { icon: Video,           label: 'Broadcasting',    path: '/broadcasting'    },
+  { icon: Bell,            label: 'Notifications',   path: '/notifications'   },
+  { icon: ScrollText,      label: 'Privacy Policy',  path: '/privacy-policy'  },
+  { icon: ShieldCheck,     label: 'Sub Users',       path: '/sub-users',      superAdminOnly: true },
 ]
 
 const roleBadgeColors = {
@@ -35,8 +37,11 @@ export default function Sidebar() {
   const roleNorm = user?.roleNorm || ''
   const roleBadge = roleBadgeColors[roleNorm] || 'bg-gray-100 text-gray-600'
 
-  // Only show nav items the current role can access
-  const visibleNav = navItems.filter(item => canAccess(roleNorm, item.path))
+  // Only show nav items the current role can access; superAdminOnly items are hidden for everyone else
+  const visibleNav = navItems.filter(item => {
+    if (item.superAdminOnly && roleNorm !== 'super admin') return false
+    return canAccess(roleNorm, item.path)
+  })
 
   const handleLogout = () => {
     logout()
@@ -52,7 +57,7 @@ export default function Sidebar() {
         </div>
         <div>
           <div className="text-sm font-bold text-primary">Hot FM 101.5</div>
-          <div className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-semibold">Sonic Command</div>
+          <div className="text-[10px] text-gray-400 uppercase tracking-[0.15em] font-semibold">Admin Panel</div>
         </div>
       </div>
 
@@ -70,33 +75,42 @@ export default function Sidebar() {
 
       {/* Navigation — filtered by role */}
       <nav className="flex-1 px-3 mt-1">
-        {visibleNav.map(({ icon: Icon, label, path, badgeKey }) => (
-          <NavLink
-            key={path}
-            to={path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
-                isActive ? 'bg-blue-50 text-accent' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`
-            }
-          >
-            <Icon className="w-[18px] h-[18px]" />
-            {label}
-            {badgeKey === 'shoutouts' && pendingCount > 0 && (
-              <span className="ml-auto bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {pendingCount}
-              </span>
-            )}
-          </NavLink>
+        {visibleNav.map(({ icon: Icon, label, path, badgeKey, superAdminOnly }) => (
+          <div key={path}>
+            {superAdminOnly && <div className="my-2 border-t border-gray-100" />}
+            <NavLink
+              to={path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
+                  superAdminOnly
+                    ? isActive
+                      ? 'bg-red-50 text-red-600'
+                      : 'text-red-500 hover:bg-red-50 hover:text-red-600'
+                    : isActive
+                      ? 'bg-blue-50 text-accent'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`
+              }
+            >
+              <Icon className="w-[18px] h-[18px]" />
+              {label}
+              {badgeKey === 'shoutouts' && pendingCount > 0 && (
+                <span className="ml-auto bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {pendingCount}
+                </span>
+              )}
+              {superAdminOnly && (
+                <span className="ml-auto text-[9px] font-bold uppercase tracking-wider bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
+                  SA
+                </span>
+              )}
+            </NavLink>
+          </div>
         ))}
       </nav>
 
       {/* Footer */}
       <div className="px-3 pb-6 border-t border-gray-100 pt-4 space-y-1">
-        <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 w-full transition-colors">
-          <HelpCircle className="w-[18px] h-[18px]" />
-          Help
-        </button>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 w-full transition-colors"

@@ -6,16 +6,17 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase'
+import { registerFCMToken, listenForForegroundMessages } from '../utils/fcm'
 
 const AuthContext = createContext(null)
 
 // ── Role permissions ────────────────────────────────────────────────────────
 // Normalized role → list of allowed route paths
 export const ROLE_PERMISSIONS = {
-  'super admin': ['*'],   // all pages
-  'admin':       ['*'],   // all pages
-  'editor':      ['/dashboard', '/content', '/contests', '/events'],
-  'staff':       ['/dashboard', '/shoutouts', '/broadcasting'],
+  'super admin': ['*'],   // all pages including /sub-users
+  'admin':       ['/dashboard', '/users', '/content', '/contests', '/events', '/shoutouts', '/ads', '/ads/analytics', '/broadcasting', '/notifications', '/privacy-policy'],
+  'editor':      ['/dashboard', '/content', '/contests', '/events', '/privacy-policy'],
+  'staff':       ['/dashboard', '/shoutouts', '/broadcasting', '/privacy-policy'],
   'listener':    [],      // no access
 }
 
@@ -55,6 +56,9 @@ export function AuthProvider({ children }) {
               role: data.role,        // keep original casing for display
               roleNorm: role,         // normalized for permission checks
             })
+            // Register FCM token and listen for foreground messages (non-blocking)
+            registerFCMToken(firebaseUser.uid)
+            listenForForegroundMessages()
           }
         } else {
           // UID not found in users collection → no access
@@ -103,8 +107,12 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const updateUserData = (data) => {
+    setUser(prev => prev ? { ...prev, ...data } : prev)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, loading, authError, clearAuthError: () => setAuthError('') }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserData, isAuthenticated: !!user, loading, authError, clearAuthError: () => setAuthError('') }}>
       {!loading && children}
     </AuthContext.Provider>
   )

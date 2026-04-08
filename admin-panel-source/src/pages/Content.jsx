@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react'
 import {
   PlusCircle, List, Grid3X3, Pencil, Trash2, Star, Eye,
-  FileText, TrendingUp, Flame, Shuffle, SkipBack, Pause,
-  SkipForward, Repeat, Volume2
+  FileText, TrendingUp, Flame
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useData } from '../contexts/DataContext'
@@ -367,33 +366,6 @@ export default function Content() {
         />
       </div>
 
-      {/* Now Playing Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-primary text-white px-6 py-3 flex items-center justify-between z-40">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-            <Volume2 className="w-5 h-5 text-accent" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Summer Vibes Mix</p>
-            <p className="text-xs text-white/60">DJ Sonic &middot; Hot 101.5 FM</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="text-white/60 hover:text-white"><Shuffle className="w-4 h-4" /></button>
-          <button className="text-white/60 hover:text-white"><SkipBack className="w-4 h-4" /></button>
-          <button className="w-10 h-10 bg-accent rounded-full flex items-center justify-center hover:bg-accent-hover">
-            <Pause className="w-5 h-5" />
-          </button>
-          <button className="text-white/60 hover:text-white"><SkipForward className="w-4 h-4" /></button>
-          <button className="text-white/60 hover:text-white"><Repeat className="w-4 h-4" /></button>
-        </div>
-        <div className="flex items-center gap-3 w-48">
-          <div className="flex-1 h-1 bg-white/20 rounded-full">
-            <div className="w-2/3 h-1 bg-accent rounded-full" />
-          </div>
-          <span className="text-xs text-white/60">2:34 / 3:45</span>
-        </div>
-      </div>
 
       {/* Modals */}
       <ArticleModal

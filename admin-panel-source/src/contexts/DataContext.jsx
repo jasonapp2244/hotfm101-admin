@@ -196,6 +196,13 @@ export function DataProvider({ children }) {
     await addActivity('shoutout', `Shoutout from ${s?.name || 'user'} was rejected.`, 'REJECTED', 'bg-red-50 text-red-700')
   }
 
+  const markEmailSent = async (id) => {
+    const s = shoutouts.find((s) => s.id === id)
+    updateShoutoutOpt(id, { emailSent: true })
+    await updateDoc(doc(db, 'shoutouts', id), { emailSent: true, emailSentAt: serverTimestamp() })
+    await addActivity('shoutout', `Approval email sent to ${s?.name || 'user'}.`, 'EMAIL SENT', 'bg-blue-50 text-blue-700')
+  }
+
   // ── Notifications ──────────────────────────────────────────────────────────
   const addNotification = async (notification) => {
     const newItem = { ...notification, date: new Date().toISOString(), reach: 0, createdAt: Timestamp.now() }
@@ -255,7 +262,7 @@ export function DataProvider({ children }) {
     articles, addArticle, updateArticle, deleteArticle,
     contests, addContest, updateContest, deleteContest,
     events, addEvent, updateEvent, deleteEvent,
-    shoutouts, approveShoutout, rejectShoutout,
+    shoutouts, approveShoutout, rejectShoutout, markEmailSent,
     notifications, addNotification,
     ads, addAd, updateAd, deleteAd,
     adAnalytics,

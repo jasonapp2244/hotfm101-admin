@@ -63,22 +63,31 @@ export const seedEvents = [
   { id: 'e8', name: 'DJ Masterclass Workshop', type: 'WORKSHOP', date: '2024-05-10', time: '01:00 PM EST', location: 'Hot FM Studio', rsvp: 45, capacity: 50, status: 'Sold Out' },
 ]
 
+// Sample video URLs — in production these come from Firebase Storage uploads
+const SAMPLE_VIDEOS = [
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+]
+
 export const seedShoutouts = [
-  { id: 's1', name: 'Sarah Jenkins', time: '2024-06-15T10:28:00', location: 'Clearwater, FL', priority: 'high', status: 'pending', gradient: 'from-pink-400 to-rose-500' },
-  { id: 's2', name: 'Marcus V.', time: '2024-06-15T10:15:00', location: 'Tampa, FL', priority: 'normal', status: 'pending', gradient: 'from-cyan-400 to-blue-500' },
-  { id: 's3', name: 'Elena Rodriguez', time: '2024-06-15T10:02:00', location: 'Miami, FL', priority: 'normal', status: 'pending', gradient: 'from-purple-400 to-pink-500' },
-  { id: 's4', name: 'DJ K-Flow', time: '2024-06-15T09:48:00', location: 'Orlando, FL', priority: 'normal', status: 'pending', gradient: 'from-indigo-400 to-violet-500' },
-  { id: 's5', name: 'Largo Crew', time: '2024-06-15T09:30:00', location: 'Largo, FL', priority: 'normal', status: 'pending', gradient: 'from-amber-400 to-orange-500' },
-  { id: 's6', name: 'Audio Addict', time: '2024-06-15T09:30:00', location: 'St. Petersburg, FL', priority: 'normal', status: 'pending', gradient: 'from-emerald-400 to-teal-500' },
-  { id: 's7', name: 'Tommy Bass', time: '2024-06-15T08:50:00', location: 'Jacksonville, FL', priority: 'normal', status: 'approved', gradient: 'from-rose-400 to-red-500' },
-  { id: 's8', name: 'Luna Wave', time: '2024-06-15T08:30:00', location: 'Sarasota, FL', priority: 'normal', status: 'approved', gradient: 'from-blue-400 to-indigo-500' },
-  { id: 's9', name: 'Neon Nights', time: '2024-06-15T08:10:00', location: 'Fort Lauderdale, FL', priority: 'normal', status: 'approved', gradient: 'from-violet-400 to-purple-500' },
-  { id: 's10', name: 'Beach Vibes', time: '2024-06-15T07:45:00', location: 'Naples, FL', priority: 'normal', status: 'rejected', gradient: 'from-orange-400 to-red-500' },
-  { id: 's11', name: 'Static Fred', time: '2024-06-15T07:20:00', location: 'Gainesville, FL', priority: 'normal', status: 'rejected', gradient: 'from-gray-400 to-slate-500' },
-  { id: 's12', name: 'Melody Maker', time: '2024-06-15T09:55:00', location: 'Tallahassee, FL', priority: 'normal', status: 'pending', gradient: 'from-teal-400 to-cyan-500' },
-  { id: 's13', name: 'Sonic Youth', time: '2024-06-15T09:40:00', location: 'Pensacola, FL', priority: 'normal', status: 'pending', gradient: 'from-pink-400 to-fuchsia-500' },
-  { id: 's14', name: 'Vinyl Queen', time: '2024-06-15T09:20:00', location: 'Daytona Beach, FL', priority: 'high', status: 'pending', gradient: 'from-yellow-400 to-amber-500' },
-  { id: 's15', name: 'Bass Drop Mike', time: '2024-06-15T09:00:00', location: 'Key West, FL', priority: 'normal', status: 'approved', gradient: 'from-lime-400 to-green-500' },
+  { id: 's1',  name: 'Sarah Jenkins',   email: 'sarah.jenkins@gmail.com',    time: '2024-06-15T10:28:00', location: 'Clearwater, FL',     priority: 'high',   status: 'pending',  emailSent: false, gradient: 'from-pink-400 to-rose-500',     videoUrl: SAMPLE_VIDEOS[0] },
+  { id: 's2',  name: 'Marcus V.',        email: 'marcus.v@yahoo.com',         time: '2024-06-15T10:15:00', location: 'Tampa, FL',           priority: 'normal', status: 'pending',  emailSent: false, gradient: 'from-cyan-400 to-blue-500',     videoUrl: SAMPLE_VIDEOS[1] },
+  { id: 's3',  name: 'Elena Rodriguez',  email: 'elena.rodriguez@outlook.com',time: '2024-06-15T10:02:00', location: 'Miami, FL',           priority: 'normal', status: 'pending',  emailSent: false, gradient: 'from-purple-400 to-pink-500',   videoUrl: SAMPLE_VIDEOS[2] },
+  { id: 's4',  name: 'DJ K-Flow',        email: 'djkflow@hotmail.com',        time: '2024-06-15T09:48:00', location: 'Orlando, FL',         priority: 'normal', status: 'pending',  emailSent: false, gradient: 'from-indigo-400 to-violet-500', videoUrl: SAMPLE_VIDEOS[3] },
+  { id: 's5',  name: 'Largo Crew',       email: 'largocrew@gmail.com',        time: '2024-06-15T09:30:00', location: 'Largo, FL',           priority: 'normal', status: 'pending',  emailSent: false, gradient: 'from-amber-400 to-orange-500',  videoUrl: SAMPLE_VIDEOS[4] },
+  { id: 's6',  name: 'Audio Addict',     email: 'audioaddict@sonic.io',       time: '2024-06-15T09:30:00', location: 'St. Petersburg, FL', priority: 'normal', status: 'pending',  emailSent: false, gradient: 'from-emerald-400 to-teal-500',  videoUrl: SAMPLE_VIDEOS[0] },
+  { id: 's7',  name: 'Tommy Bass',       email: 'tommy.bass@gmail.com',       time: '2024-06-15T08:50:00', location: 'Jacksonville, FL',   priority: 'normal', status: 'approved', emailSent: false, gradient: 'from-rose-400 to-red-500',      videoUrl: SAMPLE_VIDEOS[1] },
+  { id: 's8',  name: 'Luna Wave',        email: 'lunawave@music.fm',          time: '2024-06-15T08:30:00', location: 'Sarasota, FL',        priority: 'normal', status: 'approved', emailSent: true,  gradient: 'from-blue-400 to-indigo-500',   videoUrl: SAMPLE_VIDEOS[2] },
+  { id: 's9',  name: 'Neon Nights',      email: 'neonnights@beats.co',        time: '2024-06-15T08:10:00', location: 'Fort Lauderdale, FL',priority: 'normal', status: 'approved', emailSent: false, gradient: 'from-violet-400 to-purple-500', videoUrl: SAMPLE_VIDEOS[3] },
+  { id: 's10', name: 'Beach Vibes',      email: 'beachvibes@yahoo.com',       time: '2024-06-15T07:45:00', location: 'Naples, FL',          priority: 'normal', status: 'rejected', emailSent: false, gradient: 'from-orange-400 to-red-500',    videoUrl: SAMPLE_VIDEOS[4] },
+  { id: 's11', name: 'Static Fred',      email: 'staticfred@gmail.com',       time: '2024-06-15T07:20:00', location: 'Gainesville, FL',    priority: 'normal', status: 'rejected', emailSent: false, gradient: 'from-gray-400 to-slate-500',    videoUrl: SAMPLE_VIDEOS[0] },
+  { id: 's12', name: 'Melody Maker',     email: 'melodymaker@hotmail.com',    time: '2024-06-15T09:55:00', location: 'Tallahassee, FL',    priority: 'normal', status: 'pending',  emailSent: false, gradient: 'from-teal-400 to-cyan-500',     videoUrl: SAMPLE_VIDEOS[1] },
+  { id: 's13', name: 'Sonic Youth',      email: 'sonicyouth@outlook.com',     time: '2024-06-15T09:40:00', location: 'Pensacola, FL',      priority: 'normal', status: 'pending',  emailSent: false, gradient: 'from-pink-400 to-fuchsia-500',  videoUrl: SAMPLE_VIDEOS[2] },
+  { id: 's14', name: 'Vinyl Queen',      email: 'vinylqueen@music.org',       time: '2024-06-15T09:20:00', location: 'Daytona Beach, FL',  priority: 'high',   status: 'pending',  emailSent: false, gradient: 'from-yellow-400 to-amber-500',  videoUrl: SAMPLE_VIDEOS[3] },
+  { id: 's15', name: 'Bass Drop Mike',   email: 'bassdropmike@gmail.com',     time: '2024-06-15T09:00:00', location: 'Key West, FL',        priority: 'normal', status: 'approved', emailSent: false, gradient: 'from-lime-400 to-green-500',    videoUrl: SAMPLE_VIDEOS[4] },
 ]
 
 export const seedNotifications = [

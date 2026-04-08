@@ -5,6 +5,7 @@ import './index.css'
 import { AuthProvider, useAuth, canAccess } from './contexts/AuthContext'
 import { DataProvider } from './contexts/DataContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import ToastContainer from './components/Toast'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -17,6 +18,8 @@ import Notifications from './pages/Notifications'
 import Ads from './pages/Ads'
 import Broadcasting from './pages/Broadcasting'
 import AdAnalytics from './pages/AdAnalytics'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import SubUsers from './pages/SubUsers'
 
 // Requires login AND role permission for the route
 function ProtectedRoute({ children }) {
@@ -58,6 +61,12 @@ function AppRoutes() {
       <Route path="/shoutouts"      element={<ProtectedRoute><Shoutouts /></ProtectedRoute>} />
       <Route path="/broadcasting"   element={<ProtectedRoute><Broadcasting /></ProtectedRoute>} />
 
+      {/* All authenticated roles */}
+      <Route path="/privacy-policy" element={<ProtectedRoute><PrivacyPolicy /></ProtectedRoute>} />
+
+      {/* Super Admin only */}
+      <Route path="/sub-users"      element={<ProtectedRoute><SubUsers /></ProtectedRoute>} />
+
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
@@ -66,14 +75,16 @@ function AppRoutes() {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <DataProvider>
-          <ToastProvider>
-            <AppRoutes />
-            <ToastContainer />
-          </ToastProvider>
-        </DataProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <DataProvider>
+            <ToastProvider>
+              <AppRoutes />
+              <ToastContainer />
+            </ToastProvider>
+          </DataProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
 )

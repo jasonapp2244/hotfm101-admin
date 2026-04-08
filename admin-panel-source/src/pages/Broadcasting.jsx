@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   Video, Plus, Download, Filter, Play, Eye, MoreVertical, Pencil, Trash2,
-  Radio, Clock, ExternalLink, Pause, Volume2
+  Radio, Clock, ExternalLink, X
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useData } from '../contexts/DataContext'
@@ -44,13 +44,53 @@ export default function Broadcasting() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [actionMenuId, setActionMenuId] = useState(null)
   const [previewId, setPreviewId] = useState(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filters, setFilters] = useState({ sort: 'default', type: 'All', minViewers: '' })
+  const filterRef = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const activeFilterCount = [
+    filters.sort !== 'default',
+    filters.type !== 'All',
+    filters.minViewers !== '',
+  ].filter(Boolean).length
+
+  const clearFilters = () => setFilters({ sort: 'default', type: 'All', minViewers: '' })
 
   const tabFiltered = useMemo(() =>
     broadcasts.filter(b => b.status === activeTab), [broadcasts, activeTab])
 
-  const { query, setQuery, filteredItems } = useSearch(tabFiltered, ['title', 'description'])
+  const { query, setQuery, filteredItems: searched } = useSearch(tabFiltered, ['title', 'description'])
+
+  const filteredItems = useMemo(() => {
+    let result = [...searched]
+
+    if (filters.type !== 'All') result = result.filter(b => b.type === filters.type)
+    if (filters.minViewers !== '') result = result.filter(b => (b.viewerCount || 0) >= Number(filters.minViewers))
+
+    switch (filters.sort) {
+      case 'title_asc':    result.sort((a, b) => a.title.localeCompare(b.title)); break
+      case 'title_desc':   result.sort((a, b) => b.title.localeCompare(a.title)); break
+      case 'viewers_desc': result.sort((a, b) => (b.viewerCount || 0) - (a.viewerCount || 0)); break
+      case 'viewers_asc':  result.sort((a, b) => (a.viewerCount || 0) - (b.viewerCount || 0)); break
+      case 'date_asc':     result.sort((a, b) => new Date(a.startTime) - new Date(b.startTime)); break
+      case 'date_desc':    result.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)); break
+      default: break
+    }
+
+    return result
+  }, [searched, filters])
 
   const { currentPage, setCurrentPage, paginatedItems, totalPages, totalItems, startIndex, endIndex } = usePagination(filteredItems, 10)
+
+  useEffect(() => { setCurrentPage(1) }, [filters, activeTab, query])
 
   // Stats
   const liveCount = broadcasts.filter(b => b.status === 'Live').length
@@ -118,9 +158,85 @@ export default function Broadcasting() {
           <button onClick={handleExport} className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
             <Download className="w-4 h-4" /> Export CSV
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-            <Filter className="w-4 h-4" /> Filter
-          </button>
+          <div className="relative" ref={filterRef}>
+            <button
+              onClick={() => setFilterOpen(prev => !prev)}
+              className={`flex items-center gap-2 px-5 py-2.5 border rounded-xl text-sm font-medium transition-colors ${
+                filterOpen || activeFilterCount > 0
+                  ? 'border-accent text-accent bg-accent/5'
+                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Filter className="w-4 h-4" /> Filter
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
+            {filterOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 z-30 p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Filter & Sort</p>
+                  {activeFilterCount > 0 && (
+                    <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 font-medium">
+                      <X className="w-3 h-3" /> Clear all
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Sort by</label>
+                  <select
+                    value={filters.sort}
+                    onChange={e => setFilters(p => ({ ...p, sort: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  >
+                    <option value="default">Default</option>
+                    <option value="title_asc">Title A → Z</option>
+                    <option value="title_desc">Title Z → A</option>
+                    <option value="viewers_desc">Viewers: High → Low</option>
+                    <option value="viewers_asc">Viewers: Low → High</option>
+                    <option value="date_asc">Start Time: Earliest</option>
+                    <option value="date_desc">Start Time: Latest</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Broadcast Type</label>
+                  <select
+                    value={filters.type}
+                    onChange={e => setFilters(p => ({ ...p, type: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  >
+                    {['All', 'live', 'recorded', 'scheduled'].map(t => (
+                      <option key={t} value={t}>{t === 'All' ? 'All Types' : t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Minimum Viewers</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 500"
+                    value={filters.minViewers}
+                    onChange={e => setFilters(p => ({ ...p, minViewers: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  />
+                </div>
+
+                <button
+                  onClick={() => setFilterOpen(false)}
+                  className="w-full py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:bg-accent-hover transition-colors"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-medium hover:bg-accent-hover">
             <Plus className="w-4 h-4" /> Create New Broadcast
           </button>
@@ -299,24 +415,6 @@ export default function Broadcasting() {
           onPageChange={setCurrentPage}
           label="broadcasts"
         />
-      </div>
-
-      {/* Now Playing Bar */}
-      <div className="bg-primary rounded-2xl px-6 py-4 flex items-center justify-between text-white">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center"><div className="w-5 h-5 bg-white/30 rounded-full" /></div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">On Air Now</div>
-            <div className="text-sm font-semibold">Midnight Grooves &mdash; DJ Sonic</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="w-48 bg-white/10 rounded-full h-1.5"><div className="bg-accent h-1.5 rounded-full" style={{ width: '65%' }} /></div>
-          <span className="text-xs text-white/60">03:45 / 05:20</span>
-          <Volume2 className="w-4 h-4 text-white/60" />
-          <div className="w-20 bg-white/10 rounded-full h-1"><div className="bg-white h-1 rounded-full" style={{ width: '70%' }} /></div>
-          <button className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"><Pause className="w-5 h-5" /></button>
-        </div>
       </div>
 
       {/* Modals */}

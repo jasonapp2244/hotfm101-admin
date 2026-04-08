@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Megaphone, Plus, Download, Filter, MapPin, MoreVertical, Pencil, Trash2,
-  Image, Pause, Volume2, BarChart3
+  Image, BarChart3, X
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useData } from '../contexts/DataContext'
@@ -32,13 +32,53 @@ export default function Ads() {
   const [deleteId, setDeleteId] = useState(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [actionMenuId, setActionMenuId] = useState(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filters, setFilters] = useState({ sort: 'default', minRadius: '', maxRadius: '' })
+  const filterRef = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const activeFilterCount = [
+    filters.sort !== 'default',
+    filters.minRadius !== '',
+    filters.maxRadius !== '',
+  ].filter(Boolean).length
+
+  const clearFilters = () => setFilters({ sort: 'default', minRadius: '', maxRadius: '' })
 
   const tabFiltered = useMemo(() =>
     ads.filter(a => a.status === activeTab), [ads, activeTab])
 
-  const { query, setQuery, filteredItems } = useSearch(tabFiltered, ['title', 'businessName', 'address'])
+  const { query, setQuery, filteredItems: searched } = useSearch(tabFiltered, ['title', 'businessName', 'address'])
+
+  const filteredItems = useMemo(() => {
+    let result = [...searched]
+
+    if (filters.minRadius !== '') result = result.filter(a => (a.radiusKm || 0) >= Number(filters.minRadius))
+    if (filters.maxRadius !== '') result = result.filter(a => (a.radiusKm || 0) <= Number(filters.maxRadius))
+
+    switch (filters.sort) {
+      case 'title_asc':     result.sort((a, b) => a.title.localeCompare(b.title)); break
+      case 'title_desc':    result.sort((a, b) => b.title.localeCompare(a.title)); break
+      case 'radius_desc':   result.sort((a, b) => (b.radiusKm || 0) - (a.radiusKm || 0)); break
+      case 'radius_asc':    result.sort((a, b) => (a.radiusKm || 0) - (b.radiusKm || 0)); break
+      case 'start_asc':     result.sort((a, b) => new Date(a.startDate) - new Date(b.startDate)); break
+      case 'start_desc':    result.sort((a, b) => new Date(b.startDate) - new Date(a.startDate)); break
+      default: break
+    }
+
+    return result
+  }, [searched, filters])
 
   const { currentPage, setCurrentPage, paginatedItems, totalPages, totalItems, startIndex, endIndex } = usePagination(filteredItems, 10)
+
+  useEffect(() => { setCurrentPage(1) }, [filters, activeTab, query])
 
   // Stats
   const activeCount = ads.filter(a => a.status === 'Active').length
@@ -117,9 +157,83 @@ export default function Ads() {
           <button onClick={handleExport} className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
             <Download className="w-4 h-4" /> Export CSV
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-            <Filter className="w-4 h-4" /> Filter
-          </button>
+          <div className="relative" ref={filterRef}>
+            <button
+              onClick={() => setFilterOpen(prev => !prev)}
+              className={`flex items-center gap-2 px-5 py-2.5 border rounded-xl text-sm font-medium transition-colors ${
+                filterOpen || activeFilterCount > 0
+                  ? 'border-accent text-accent bg-accent/5'
+                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Filter className="w-4 h-4" /> Filter
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
+            {filterOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 z-30 p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Filter & Sort</p>
+                  {activeFilterCount > 0 && (
+                    <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 font-medium">
+                      <X className="w-3 h-3" /> Clear all
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Sort by</label>
+                  <select
+                    value={filters.sort}
+                    onChange={e => setFilters(p => ({ ...p, sort: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  >
+                    <option value="default">Default</option>
+                    <option value="title_asc">Title A → Z</option>
+                    <option value="title_desc">Title Z → A</option>
+                    <option value="radius_desc">Radius: Largest First</option>
+                    <option value="radius_asc">Radius: Smallest First</option>
+                    <option value="start_asc">Start Date: Earliest</option>
+                    <option value="start_desc">Start Date: Latest</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Geofence Radius (km)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Min"
+                      value={filters.minRadius}
+                      onChange={e => setFilters(p => ({ ...p, minRadius: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    />
+                    <span className="text-gray-400 text-xs shrink-0">to</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Max"
+                      value={filters.maxRadius}
+                      onChange={e => setFilters(p => ({ ...p, maxRadius: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setFilterOpen(false)}
+                  className="w-full py-2 bg-accent text-white rounded-lg text-sm font-semibold hover:bg-accent-hover transition-colors"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={handleCreate} className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-medium hover:bg-accent-hover">
             <Plus className="w-4 h-4" /> Create New Ad
           </button>
@@ -273,24 +387,6 @@ export default function Ads() {
           onPageChange={setCurrentPage}
           label="ads"
         />
-      </div>
-
-      {/* Now Playing Bar */}
-      <div className="bg-primary rounded-2xl px-6 py-4 flex items-center justify-between text-white">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center"><div className="w-5 h-5 bg-white/30 rounded-full" /></div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">On Air Now</div>
-            <div className="text-sm font-semibold">Midnight Grooves &mdash; DJ Sonic</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="w-48 bg-white/10 rounded-full h-1.5"><div className="bg-accent h-1.5 rounded-full" style={{ width: '65%' }} /></div>
-          <span className="text-xs text-white/60">03:45 / 05:20</span>
-          <Volume2 className="w-4 h-4 text-white/60" />
-          <div className="w-20 bg-white/10 rounded-full h-1"><div className="bg-white h-1 rounded-full" style={{ width: '70%' }} /></div>
-          <button className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"><Pause className="w-5 h-5" /></button>
-        </div>
       </div>
 
       {/* Modals */}

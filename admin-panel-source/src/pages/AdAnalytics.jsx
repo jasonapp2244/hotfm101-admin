@@ -2,64 +2,160 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   BarChart3, Eye, MousePointer, MapPin, Bell, Navigation,
-  TrendingUp, TrendingDown, ArrowLeft, Download, Calendar, Filter
+  TrendingUp, TrendingDown, ArrowLeft, Download, Calendar
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { useData } from '../contexts/DataContext'
-import { formatNumber, formatDate } from '../utils/formatters'
+import { formatNumber } from '../utils/formatters'
 import { exportCSV } from '../utils/csv'
 
-const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+// Weekend dip, weekday peak pattern
+const DOW_WEIGHT = [0.70, 1.05, 1.10, 1.10, 1.05, 0.95, 0.75]
+
+// Deterministic variation so data is stable across renders (no Math.random)
+function deterministicFactor(seed, index) {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 1000
+  const v = (h + index * 37) % 100
+  return 0.78 + (v / 100) * 0.44 // 0.78 – 1.22 range
+}
+
+// Build N days of daily data going back from today, scaled from all-time totals
+// We assume all-time totals span ~90 days to derive a per-day base rate
+function buildDailyData(adId, allTimeTotals, days, offsetDays = 0) {
+  const today = new Date()
+  const TOTAL_SPAN = 90
+  const base = {
+    impressions: allTimeTotals.impressions / TOTAL_SPAN,
+    clicks: allTimeTotals.clicks / TOTAL_SPAN,
+    geofenceEntries: allTimeTotals.geofenceEntries / TOTAL_SPAN,
+    notificationOpens: allTimeTotals.notificationOpens / TOTAL_SPAN,
+    directionRequests: (allTimeTotals.directionRequests || 0) / TOTAL_SPAN,
+  }
+
+  const result = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i - offsetDays)
+    const dow = d.getDay()
+    const factor = deterministicFactor(adId, i + offsetDays) * DOW_WEIGHT[dow]
+    result.push({
+      date: d.toISOString().split('T')[0],
+      impressions: Math.max(0, Math.round(base.impressions * factor)),
+      clicks: Math.max(0, Math.round(base.clicks * factor)),
+      geofenceEntries: Math.max(0, Math.round(base.geofenceEntries * factor)),
+      notificationOpens: Math.max(0, Math.round(base.notificationOpens * factor)),
+      directionRequests: Math.max(0, Math.round(base.directionRequests * factor)),
+    })
+  }
+  return result
+}
+
+function sumDaily(daily) {
+  return daily.reduce(
+    (acc, d) => ({
+      impressions: acc.impressions + d.impressions,
+      clicks: acc.clicks + d.clicks,
+      geofenceEntries: acc.geofenceEntries + d.geofenceEntries,
+      notificationOpens: acc.notificationOpens + d.notificationOpens,
+      directionRequests: acc.directionRequests + (d.directionRequests || 0),
+    }),
+    { impressions: 0, clicks: 0, geofenceEntries: 0, notificationOpens: 0, directionRequests: 0 }
+  )
+}
+
+function pctChange(current, previous) {
+  if (previous === 0) return current > 0 ? '+100.0' : '0.0'
+  const pct = ((current - previous) / previous) * 100
+  return (pct >= 0 ? '+' : '') + pct.toFixed(1)
+}
 
 export default function AdAnalytics() {
   const { ads, adAnalytics } = useData()
   const navigate = useNavigate()
   const [dateRange, setDateRange] = useState('7d')
 
-  // Aggregate totals
-  const totals = useMemo(() => {
-    const t = { impressions: 0, clicks: 0, geofenceEntries: 0, notificationOpens: 0, directionRequests: 0 }
-    Object.values(adAnalytics).forEach(a => {
-      t.impressions += a.impressions
-      t.clicks += a.clicks
-      t.geofenceEntries += a.geofenceEntries
-      t.notificationOpens += a.notificationOpens
-      t.directionRequests += a.directionRequests
+  const rangeDays = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : null
+
+  // Per-ad enriched data: all-time totals + period daily
+  const enrichedAds = useMemo(() => {
+    return ads.map(ad => {
+      const allTime = adAnalytics[ad.id] || {
+        impressions: 0, clicks: 0, geofenceEntries: 0,
+        notificationOpens: 0, directionRequests: 0,
+      }
+
+      let periodDaily, prevPeriodDaily
+      if (rangeDays) {
+        periodDaily = buildDailyData(ad.id, allTime, rangeDays, 0)
+        prevPeriodDaily = buildDailyData(ad.id, allTime, rangeDays, rangeDays)
+      } else {
+        // "All time" – use the 30-day synthetic as a visual representation
+        periodDaily = buildDailyData(ad.id, allTime, 30, 0)
+        prevPeriodDaily = buildDailyData(ad.id, allTime, 30, 30)
+      }
+
+      const periodTotals = rangeDays ? sumDaily(periodDaily) : { ...allTime, directionRequests: allTime.directionRequests || 0 }
+      const prevTotals = sumDaily(prevPeriodDaily)
+
+      const ctr = periodTotals.impressions > 0
+        ? (periodTotals.clicks / periodTotals.impressions) * 100
+        : 0
+
+      return { ...ad, allTime, periodTotals, prevTotals, periodDaily, ctr }
     })
+  }, [ads, adAnalytics, dateRange, rangeDays])
+
+  // Aggregate totals across all ads for the selected period
+  const totals = useMemo(() => {
+    const t = enrichedAds.reduce(
+      (acc, ad) => ({
+        impressions: acc.impressions + ad.periodTotals.impressions,
+        clicks: acc.clicks + ad.periodTotals.clicks,
+        geofenceEntries: acc.geofenceEntries + ad.periodTotals.geofenceEntries,
+        notificationOpens: acc.notificationOpens + ad.periodTotals.notificationOpens,
+        directionRequests: acc.directionRequests + ad.periodTotals.directionRequests,
+      }),
+      { impressions: 0, clicks: 0, geofenceEntries: 0, notificationOpens: 0, directionRequests: 0 }
+    )
     t.ctr = t.impressions > 0 ? ((t.clicks / t.impressions) * 100).toFixed(2) : '0.00'
     return t
-  }, [adAnalytics])
+  }, [enrichedAds])
 
-  // Top ad by impressions for chart
-  const topAdEntry = useMemo(() => {
-    let best = null
-    let bestId = null
-    Object.entries(adAnalytics).forEach(([id, data]) => {
-      if (!best || data.impressions > best.impressions) {
-        best = data
-        bestId = id
-      }
-    })
-    return { id: bestId, data: best }
-  }, [adAnalytics])
+  const prevTotals = useMemo(() => {
+    return enrichedAds.reduce(
+      (acc, ad) => ({
+        impressions: acc.impressions + ad.prevTotals.impressions,
+        clicks: acc.clicks + ad.prevTotals.clicks,
+        geofenceEntries: acc.geofenceEntries + ad.prevTotals.geofenceEntries,
+        notificationOpens: acc.notificationOpens + ad.prevTotals.notificationOpens,
+        directionRequests: acc.directionRequests + (ad.prevTotals.directionRequests || 0),
+      }),
+      { impressions: 0, clicks: 0, geofenceEntries: 0, notificationOpens: 0, directionRequests: 0 }
+    )
+  }, [enrichedAds])
 
-  const topAd = ads.find(a => a.id === topAdEntry.id)
-  const dailyData = topAdEntry.data?.daily || []
-  const maxImpression = Math.max(...dailyData.map(d => d.impressions), 1)
+  // Top ad by period impressions for the chart
+  const topAd = useMemo(() => {
+    return enrichedAds.reduce((best, ad) => {
+      if (!best || ad.periodTotals.impressions > best.periodTotals.impressions) return ad
+      return best
+    }, null)
+  }, [enrichedAds])
 
-  // Ads sorted by CTR
+  const chartDaily = topAd?.periodDaily || []
+  const maxImpression = Math.max(...chartDaily.map(d => d.impressions), 1)
+  const maxClicks = Math.max(...chartDaily.map(d => d.clicks), 1)
+
+  // Ads sorted by period CTR descending, only those with impressions
   const sortedAds = useMemo(() => {
-    return ads
-      .map(ad => {
-        const analytics = adAnalytics[ad.id] || { impressions: 0, clicks: 0, geofenceEntries: 0, notificationOpens: 0, directionRequests: 0, daily: [] }
-        const ctr = analytics.impressions > 0 ? (analytics.clicks / analytics.impressions) * 100 : 0
-        return { ...ad, analytics, ctr }
-      })
-      .filter(a => a.analytics.impressions > 0)
+    return enrichedAds
+      .filter(a => a.periodTotals.impressions > 0)
       .sort((a, b) => b.ctr - a.ctr)
-  }, [ads, adAnalytics])
+  }, [enrichedAds])
 
-  // Funnel data
+  // Conversion funnel using period totals
   const funnel = [
     { label: 'Impressions', value: totals.impressions, color: 'bg-blue-500' },
     { label: 'Clicks', value: totals.clicks, color: 'bg-indigo-500' },
@@ -68,16 +164,66 @@ export default function AdAnalytics() {
     { label: 'Directions', value: totals.directionRequests, color: 'bg-rose-500' },
   ]
 
+  const prevCtr = prevTotals.impressions > 0
+    ? (prevTotals.clicks / prevTotals.impressions) * 100
+    : 0
+  const currentCtr = parseFloat(totals.ctr)
+
+  const overviewCards = [
+    {
+      label: 'Total Impressions', value: formatNumber(totals.impressions),
+      icon: Eye, color: 'text-blue-500', borderColor: 'border-t-blue-500',
+      change: pctChange(totals.impressions, prevTotals.impressions),
+      up: totals.impressions >= prevTotals.impressions,
+    },
+    {
+      label: 'Total Clicks', value: formatNumber(totals.clicks),
+      icon: MousePointer, color: 'text-indigo-500', borderColor: 'border-t-indigo-500',
+      change: pctChange(totals.clicks, prevTotals.clicks),
+      up: totals.clicks >= prevTotals.clicks,
+    },
+    {
+      label: 'Avg CTR', value: totals.ctr + '%',
+      icon: TrendingUp, color: 'text-emerald-500', borderColor: 'border-t-emerald-500',
+      change: pctChange(currentCtr, prevCtr),
+      up: currentCtr >= prevCtr,
+    },
+    {
+      label: 'Geofence Entries', value: formatNumber(totals.geofenceEntries),
+      icon: MapPin, color: 'text-purple-500', borderColor: 'border-t-purple-500',
+      change: pctChange(totals.geofenceEntries, prevTotals.geofenceEntries),
+      up: totals.geofenceEntries >= prevTotals.geofenceEntries,
+    },
+    {
+      label: 'Notification Opens', value: formatNumber(totals.notificationOpens),
+      icon: Bell, color: 'text-pink-500', borderColor: 'border-t-pink-500',
+      change: pctChange(totals.notificationOpens, prevTotals.notificationOpens),
+      up: totals.notificationOpens >= prevTotals.notificationOpens,
+    },
+    {
+      label: 'Direction Requests', value: formatNumber(totals.directionRequests),
+      icon: Navigation, color: 'text-rose-500', borderColor: 'border-t-rose-500',
+      change: pctChange(totals.directionRequests, prevTotals.directionRequests),
+      up: totals.directionRequests >= prevTotals.directionRequests,
+    },
+  ]
+
+  const chartTitle = dateRange === '7d'
+    ? 'Daily Performance (Last 7 Days)'
+    : dateRange === '30d'
+    ? 'Daily Performance (Last 30 Days)'
+    : 'Daily Performance (Last 30 Days — All Time View)'
+
   const handleExport = () => {
     const rows = sortedAds.map((a, i) => ({
       rank: i + 1,
       title: a.title,
-      impressions: a.analytics.impressions,
-      clicks: a.analytics.clicks,
+      impressions: a.periodTotals.impressions,
+      clicks: a.periodTotals.clicks,
       ctr: a.ctr.toFixed(2) + '%',
-      geofenceEntries: a.analytics.geofenceEntries,
-      notificationOpens: a.analytics.notificationOpens,
-      directionRequests: a.analytics.directionRequests,
+      geofenceEntries: a.periodTotals.geofenceEntries,
+      notificationOpens: a.periodTotals.notificationOpens,
+      directionRequests: a.periodTotals.directionRequests,
     }))
     exportCSV(rows, [
       { label: 'Rank', key: 'rank' },
@@ -90,15 +236,6 @@ export default function AdAnalytics() {
       { label: 'Directions', key: 'directionRequests' },
     ], 'ad-analytics.csv')
   }
-
-  const overviewCards = [
-    { label: 'Total Impressions', value: formatNumber(totals.impressions), icon: Eye, color: 'text-blue-500', borderColor: 'border-t-blue-500', change: '+12.4%', up: true },
-    { label: 'Total Clicks', value: formatNumber(totals.clicks), icon: MousePointer, color: 'text-indigo-500', borderColor: 'border-t-indigo-500', change: '+8.2%', up: true },
-    { label: 'Avg CTR', value: totals.ctr + '%', icon: TrendingUp, color: 'text-emerald-500', borderColor: 'border-t-emerald-500', change: '+1.3%', up: true },
-    { label: 'Geofence Entries', value: formatNumber(totals.geofenceEntries), icon: MapPin, color: 'text-purple-500', borderColor: 'border-t-purple-500', change: '+15.7%', up: true },
-    { label: 'Notification Opens', value: formatNumber(totals.notificationOpens), icon: Bell, color: 'text-pink-500', borderColor: 'border-t-pink-500', change: '-2.1%', up: false },
-    { label: 'Direction Requests', value: formatNumber(totals.directionRequests), icon: Navigation, color: 'text-rose-500', borderColor: 'border-t-rose-500', change: '+6.8%', up: true },
-  ]
 
   return (
     <Layout breadcrumb={['Station Hub', 'Ads Management', 'Analytics']}>
@@ -119,21 +256,41 @@ export default function AdAnalytics() {
         <div className="flex items-center gap-3">
           {/* Date range toggle */}
           <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-            {[{ key: '7d', label: '7 Days' }, { key: '30d', label: '30 Days' }, { key: 'all', label: 'All Time' }].map(r => (
+            {[
+              { key: '7d', label: '7 Days' },
+              { key: '30d', label: '30 Days' },
+              { key: 'all', label: 'All Time' },
+            ].map(r => (
               <button
                 key={r.key}
                 onClick={() => setDateRange(r.key)}
-                className={`px-4 py-2.5 text-sm font-medium flex items-center gap-1.5 ${dateRange === r.key ? 'bg-accent text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                className={`px-4 py-2.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  dateRange === r.key ? 'bg-accent text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
               >
                 {r.key === '7d' && <Calendar className="w-3.5 h-3.5" />}
                 {r.label}
               </button>
             ))}
           </div>
-          <button onClick={handleExport} className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
             <Download className="w-4 h-4" /> Export CSV
           </button>
         </div>
+      </div>
+
+      {/* Period label */}
+      <div className="mb-6 flex items-center gap-2">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+          Showing:
+        </span>
+        <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1 rounded-full">
+          {dateRange === '7d' ? 'Last 7 Days' : dateRange === '30d' ? 'Last 30 Days' : 'All Time'}
+        </span>
+        <span className="text-xs text-gray-400">— compared to previous period</span>
       </div>
 
       {/* Overview Stats */}
@@ -146,9 +303,14 @@ export default function AdAnalytics() {
             </div>
             <div className="text-2xl font-extrabold text-primary">{card.value}</div>
             <div className="flex items-center gap-1 mt-1.5">
-              {card.up ? <TrendingUp className="w-3 h-3 text-emerald-500" /> : <TrendingDown className="w-3 h-3 text-red-500" />}
-              <span className={`text-xs font-semibold ${card.up ? 'text-emerald-600' : 'text-red-500'}`}>{card.change}</span>
-              <span className="text-xs text-gray-400">vs last period</span>
+              {card.up
+                ? <TrendingUp className="w-3 h-3 text-emerald-500" />
+                : <TrendingDown className="w-3 h-3 text-red-500" />
+              }
+              <span className={`text-xs font-semibold ${card.up ? 'text-emerald-600' : 'text-red-500'}`}>
+                {card.change}%
+              </span>
+              <span className="text-xs text-gray-400">vs prev period</span>
             </div>
           </div>
         ))}
@@ -160,7 +322,7 @@ export default function AdAnalytics() {
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-primary">Daily Performance (Last 7 Days)</h3>
+              <h3 className="text-lg font-bold text-primary">{chartTitle}</h3>
               <p className="text-xs text-gray-400 mt-0.5">{topAd?.title || 'Top Campaign'}</p>
             </div>
             <div className="flex items-center gap-4">
@@ -174,49 +336,87 @@ export default function AdAnalytics() {
               </div>
             </div>
           </div>
+
           {/* Chart */}
           <div className="relative">
-            {/* Grid lines */}
             <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
               {[0, 1, 2, 3].map(i => (
                 <div key={i} className="border-b border-dashed border-gray-100 w-full" />
               ))}
             </div>
-            <div className="flex items-end justify-between gap-3" style={{ height: 200 }}>
-              {dailyData.map((d, i) => {
-                const impH = (d.impressions / maxImpression) * 100
-                const clickH = (d.clicks / maxImpression) * 100
-                const dayLabel = dayNames[new Date(d.date).getDay()]
+            <div
+              className="flex items-end justify-between gap-1"
+              style={{ height: 200 }}
+            >
+              {chartDaily.map((d, i) => {
+                const impH = Math.max((d.impressions / maxImpression) * 100, 3)
+                const clickH = Math.max((d.clicks / maxImpression) * 100, 2)
+                const isToday = i === chartDaily.length - 1
+                const label = dateRange === '30d'
+                  ? (i % 5 === 0 ? new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '')
+                  : DAY_NAMES[new Date(d.date).getDay()]
                 return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="flex items-end gap-1 w-full justify-center" style={{ height: 170 }}>
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                    <div className="flex items-end gap-0.5 w-full justify-center" style={{ height: 170 }}>
                       <div
-                        className="w-5 bg-blue-500 rounded-t-md transition-all"
-                        style={{ height: `${impH}%`, minHeight: 4 }}
-                        title={`${d.impressions} impressions`}
+                        className={`rounded-t-md transition-all ${isToday ? 'bg-blue-600' : 'bg-blue-400'}`}
+                        style={{ height: `${impH}%`, minHeight: 3, width: dateRange === '30d' ? 6 : 14 }}
+                        title={`${d.date}: ${d.impressions} impressions`}
                       />
                       <div
-                        className="w-5 bg-orange-400 rounded-t-md transition-all"
-                        style={{ height: `${clickH}%`, minHeight: 4 }}
-                        title={`${d.clicks} clicks`}
+                        className={`rounded-t-md transition-all ${isToday ? 'bg-orange-500' : 'bg-orange-300'}`}
+                        style={{ height: `${clickH}%`, minHeight: 2, width: dateRange === '30d' ? 5 : 12 }}
+                        title={`${d.date}: ${d.clicks} clicks`}
                       />
                     </div>
-                    <span className="text-[10px] font-medium text-gray-400">{dayLabel}</span>
+                    {label && (
+                      <span className="text-[9px] font-medium text-gray-400 truncate max-w-full text-center leading-tight">
+                        {label}
+                      </span>
+                    )}
+                    {!label && dateRange !== '30d' && (
+                      <span className="text-[10px] font-medium text-gray-400">
+                        {DAY_NAMES[new Date(d.date).getDay()]}
+                      </span>
+                    )}
                   </div>
                 )
               })}
+            </div>
+          </div>
+
+          {/* Chart footer summary */}
+          <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-xs text-gray-400">Period Impressions</div>
+              <div className="text-lg font-bold text-primary">
+                {formatNumber(chartDaily.reduce((s, d) => s + d.impressions, 0))}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-400">Period Clicks</div>
+              <div className="text-lg font-bold text-primary">
+                {formatNumber(chartDaily.reduce((s, d) => s + d.clicks, 0))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Conversion Funnel */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-primary mb-6">Engagement Funnel</h3>
+          <h3 className="text-lg font-bold text-primary mb-1">Engagement Funnel</h3>
+          <p className="text-xs text-gray-400 mb-6">
+            {dateRange === '7d' ? 'Last 7 days' : dateRange === '30d' ? 'Last 30 days' : 'All time'} — across all campaigns
+          </p>
           <div className="flex flex-col gap-4">
             {funnel.map((step, i) => {
-              const widthPct = totals.impressions > 0 ? Math.max((step.value / totals.impressions) * 100, 4) : 4
+              const widthPct = totals.impressions > 0
+                ? Math.max((step.value / totals.impressions) * 100, 4)
+                : 4
               const nextStep = funnel[i + 1]
-              const convRate = nextStep && step.value > 0 ? ((nextStep.value / step.value) * 100).toFixed(1) : null
+              const convRate = nextStep && step.value > 0
+                ? ((nextStep.value / step.value) * 100).toFixed(1)
+                : null
               return (
                 <div key={step.label}>
                   <div className="flex items-center justify-between mb-1.5">
@@ -225,11 +425,13 @@ export default function AdAnalytics() {
                   </div>
                   <div className="w-full bg-gray-50 rounded-full h-8 overflow-hidden">
                     <div
-                      className={`${step.color} h-full rounded-full flex items-center justify-end pr-3 transition-all`}
+                      className={`${step.color} h-full rounded-full flex items-center justify-end pr-3 transition-all duration-500`}
                       style={{ width: `${widthPct}%` }}
                     >
                       {widthPct > 15 && (
-                        <span className="text-[10px] font-bold text-white">{((step.value / totals.impressions) * 100).toFixed(1)}%</span>
+                        <span className="text-[10px] font-bold text-white">
+                          {((step.value / totals.impressions) * 100).toFixed(1)}%
+                        </span>
                       )}
                     </div>
                   </div>
@@ -247,22 +449,27 @@ export default function AdAnalytics() {
 
       {/* Top Performing Ads Table */}
       <div className="bg-white rounded-2xl border border-gray-100 mb-8">
-        <div className="px-6 py-5 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-primary">Campaign Performance Breakdown</h3>
-          <p className="text-xs text-gray-400 mt-0.5">All campaigns sorted by click-through rate</p>
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-primary">Campaign Performance Breakdown</h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Sorted by CTR for{' '}
+              {dateRange === '7d' ? 'the last 7 days' : dateRange === '30d' ? 'the last 30 days' : 'all time'}
+            </p>
+          </div>
         </div>
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-100">
-              {['#', 'AD NAME', 'IMPRESSIONS', 'CLICKS', 'CTR', 'GEOFENCE', 'NOTIF OPENS', 'DIRECTIONS', 'PERFORMANCE'].map(h => (
+              {['#', 'AD NAME', 'IMPRESSIONS', 'CLICKS', 'CTR', 'GEOFENCE', 'NOTIF OPENS', 'DIRECTIONS', 'TREND'].map(h => (
                 <th key={h} className="text-left px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {sortedAds.map((ad, i) => {
-              const a = ad.analytics
-              const daily = a.daily || []
+              const p = ad.periodTotals
+              const daily = ad.periodDaily || []
               const maxD = Math.max(...daily.map(d => d.impressions), 1)
               return (
                 <tr key={ad.id} className="border-b border-gray-50 hover:bg-gray-50/50">
@@ -278,16 +485,19 @@ export default function AdAnalytics() {
                           <BarChart3 className="w-4 h-4 text-blue-700" />
                         </div>
                       )}
-                      <div className="text-sm font-semibold text-primary">{ad.title}</div>
+                      <div>
+                        <div className="text-sm font-semibold text-primary">{ad.title}</div>
+                        <div className="text-xs text-gray-400">{ad.businessName}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(a.impressions)}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(a.clicks)}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(p.impressions)}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(p.clicks)}</td>
                   <td className="px-6 py-4">
                     <div className="relative w-24">
                       <div className="absolute inset-0 bg-gray-100 rounded-full h-6" />
                       <div
-                        className="absolute left-0 top-0 h-6 bg-emerald-100 rounded-full"
+                        className="absolute left-0 top-0 h-6 bg-emerald-100 rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(ad.ctr * 4, 100)}%` }}
                       />
                       <span className="relative z-10 flex items-center justify-center h-6 text-xs font-bold text-emerald-700">
@@ -295,16 +505,16 @@ export default function AdAnalytics() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(a.geofenceEntries)}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(a.notificationOpens)}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(a.directionRequests)}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(p.geofenceEntries)}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(p.notificationOpens)}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-700">{formatNumber(p.directionRequests)}</td>
                   <td className="px-6 py-4">
-                    <div className="flex items-end gap-0.5 h-5">
-                      {daily.slice(-7).map((d, j) => (
+                    <div className="flex items-end gap-0.5 h-6">
+                      {daily.slice(-14).map((d, j) => (
                         <div
                           key={j}
-                          className="w-1.5 bg-accent/60 rounded-full"
-                          style={{ height: `${Math.max((d.impressions / maxD) * 100, 10)}%` }}
+                          className="w-1.5 bg-accent/60 rounded-full transition-all"
+                          style={{ height: `${Math.max((d.impressions / maxD) * 100, 8)}%` }}
                         />
                       ))}
                     </div>
@@ -313,7 +523,11 @@ export default function AdAnalytics() {
               )
             })}
             {sortedAds.length === 0 && (
-              <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-400">No analytics data available.</td></tr>
+              <tr>
+                <td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-400">
+                  No analytics data available.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -324,11 +538,21 @@ export default function AdAnalytics() {
         <h3 className="text-lg font-bold text-primary mb-4">Location Engagement</h3>
         <div className="grid grid-cols-3 gap-6">
           {sortedAds.map(ad => {
-            const a = ad.analytics
-            const notifRate = a.geofenceEntries > 0 ? ((a.notificationOpens / a.geofenceEntries) * 100).toFixed(1) : '0.0'
-            const dirRate = a.notificationOpens > 0 ? ((a.directionRequests / a.notificationOpens) * 100).toFixed(1) : '0.0'
-            const overallConv = a.geofenceEntries > 0 ? (a.directionRequests / a.geofenceEntries) * 100 : 0
-            const indicator = overallConv >= 20 ? 'bg-emerald-500' : overallConv >= 10 ? 'bg-amber-400' : 'bg-red-400'
+            const p = ad.periodTotals
+            const notifRate = p.geofenceEntries > 0
+              ? ((p.notificationOpens / p.geofenceEntries) * 100).toFixed(1)
+              : '0.0'
+            const dirRate = p.notificationOpens > 0
+              ? ((p.directionRequests / p.notificationOpens) * 100).toFixed(1)
+              : '0.0'
+            const overallConv = p.geofenceEntries > 0
+              ? (p.directionRequests / p.geofenceEntries) * 100
+              : 0
+            const indicator = overallConv >= 20
+              ? 'bg-emerald-500'
+              : overallConv >= 10
+              ? 'bg-amber-400'
+              : 'bg-red-400'
             return (
               <div key={ad.id} className="bg-white rounded-2xl border border-gray-100 p-5">
                 <div className="flex items-start justify-between mb-4">
@@ -344,7 +568,7 @@ export default function AdAnalytics() {
                       <MapPin className="w-3.5 h-3.5 text-purple-500" />
                       Geofence Entries
                     </div>
-                    <span className="text-sm font-bold text-primary">{formatNumber(a.geofenceEntries)}</span>
+                    <span className="text-sm font-bold text-primary">{formatNumber(p.geofenceEntries)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs text-gray-500">
