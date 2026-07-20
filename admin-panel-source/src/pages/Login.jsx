@@ -1,19 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
-import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { Mail, Lock, EyeOff, Eye, Radio, AlertCircle, X } from 'lucide-react'
-
-const FIREBASE_ERRORS = {
-  'auth/user-not-found':         'No account found with this email address.',
-  'auth/wrong-password':         'Incorrect password. Please try again.',
-  'auth/invalid-credential':     'Incorrect email or password. Please try again.',
-  'auth/invalid-email':          'The email address is not valid.',
-  'auth/too-many-requests':      'Too many failed attempts. Please try again later.',
-  'auth/user-disabled':          'This account has been disabled. Contact support.',
-  'auth/network-request-failed': 'Network error. Please check your connection.',
-}
 
 export default function Login() {
   const [email,         setEmail]         = useState('')
@@ -25,7 +13,7 @@ export default function Login() {
   const [passwordError, setPasswordError] = useState('')
   const [loading,       setLoading]       = useState(false)
 
-  const { isAuthenticated, authError, clearAuthError } = useAuth()
+  const { isAuthenticated, authError, clearAuthError, login } = useAuth()
 
   useEffect(() => {
     if (authError) {
@@ -70,13 +58,12 @@ export default function Login() {
     setError('')
     if (!validateFields()) return
     setLoading(true)
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-    } catch (err) {
-      const msg = FIREBASE_ERRORS[err?.code] || 'Incorrect email or password. Please try again.'
-      showError(msg)
+    const result = await login(email, password)
+    if (!result.success) {
+      showError(result.error)
       setLoading(false)
     }
+    // On success: onAuthStateChanged fires → isAuthenticated → <Navigate> below
   }
 
   return (
@@ -145,7 +132,7 @@ export default function Login() {
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
                 <input
-                  type="text"
+                  type="email"
                   placeholder="name@hot1015.com"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setEmailError('') }}

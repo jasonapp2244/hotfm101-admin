@@ -28,10 +28,14 @@ const SERVICE_ACCOUNT_PATH = (() => {
   return found ? path.join(__dirname, found) : fixed
 })()
 
-// Your admin user UID from Firebase Console → Authentication → Users
-const ADMIN_UID = 'RP6YvSCbCgfyjHUK2KDrEEqz'   // ← your Firebase Auth UID (copy full value from Console)
-const ADMIN_NAME = 'Admin'
-const ADMIN_EMAIL = 'admin@hot101.com'
+// Real Firebase Auth staff accounts — these are written into users/ after seeding
+// so login always works even after --clear wipes the demo user docs.
+const REAL_STAFF_USERS = [
+  { uid: 'hAoFm4vnxhdaqErlexFWeFvBCZl2', name: 'Super Admin', email: 'superadmin@hot101.com', role: 'Super Admin' },
+  { uid: 'RP6YvSCbCgfyjHUK2KDrEEqzKLI2', name: 'Admin',       email: 'admin@hot101.com',      role: 'Admin'       },
+  { uid: 'htOlOd116gSzmU8CePjVF3HVSf43', name: 'Editor',      email: 'editor@hot101.com',     role: 'Editor'      },
+  { uid: '4nRGlCXv6wdrqi12bVx0jZ4GVpC2', name: 'Staff',       email: 'staff@hot101.com',      role: 'Staff'       },
+]
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
@@ -205,7 +209,7 @@ const DEMO_COLLECTIONS = [
 ]
 
 // Collections that must NEVER be wiped automatically
-const PROTECTED_COLLECTIONS = ['admins', 'fcmTokens']
+const PROTECTED_COLLECTIONS = ['fcmTokens']
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -268,20 +272,23 @@ async function main() {
     for (const col of collectionsToWipe) {
       await clearCollection(col)
     }
+    // Also wipe legacy admins collection
+    await clearCollection('admins')
 
-    // Always keep admins safe
     console.log(`\n🔒  Protected (not wiped): ${PROTECTED_COLLECTIONS.join(', ')}`)
     console.log('\n✅  Wipe complete! Firestore is clean and ready for real data.\n')
-    console.log('   Your admin login still works. Real users can now register.\n')
+    console.log('   Your admin user doc in users/ is preserved. Real users can now register.\n')
     process.exit(0)
   }
 
   // ── MODE: --clear then seed (fresh demo reset)
   if (shouldClear) {
-    console.log('🗑  Clearing existing demo data before re-seeding...')
+    console.log('🗑  Clearing existing data before re-seeding...')
     for (const col of DEMO_COLLECTIONS) {
       await clearCollection(col)
     }
+    // Also wipe the legacy admins collection — all users now live in users/
+    await clearCollection('admins')
     console.log()
   }
 
@@ -291,15 +298,23 @@ async function main() {
     await seedCollection(col, items)
   }
 
-  // Always ensure admin doc exists
-  console.log('\n👤  Ensuring admin user doc...')
-  await db.collection('admins').doc(ADMIN_UID).set({
-    name: ADMIN_NAME,
-    email: ADMIN_EMAIL,
-    role: 'Super Admin',
-    createdAt: now,
-  }, { merge: true })
-  console.log(`  ✅  Admin doc ready for UID: ${ADMIN_UID}`)
+  // Always ensure all real staff accounts exist in users/ (survives every --clear)
+  console.log('\n👤  Syncing real staff users → users collection...')
+  for (const u of REAL_STAFF_USERS) {
+    await db.collection('users').doc(u.uid).set({
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      status: 'Active',
+      verified: true,
+      staff: true,
+      topListener: false,
+      joined: new Date().toISOString().split('T')[0],
+      lastActive: now,
+      createdAt: now,
+    }, { merge: true })
+    console.log(`  ✅  ${u.role.padEnd(12)} → users/${u.uid}  (${u.email})`)
+  }
 
   console.log('\n🎉  Done! Open https://hotfm101-admin.web.app to test.\n')
   process.exit(0)

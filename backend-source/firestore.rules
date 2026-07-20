@@ -6,14 +6,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Check if user exists in users collection (UID as doc ID) — listeners are blocked at app level
+    // Check if the requesting user has an admin-level role in the users collection.
+    // Uses .lower() so role values are compared case-insensitively.
     function isAdmin() {
-      return isAuth() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isAuth()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower()
+             in ['super admin', 'admin', 'editor', 'staff'];
     }
 
-    // Users collection
+    // Users collection — admins can list all; any auth user can read their own doc (mobile self-profile)
     match /users/{userId} {
-      allow read: if true;
+      allow get:   if isAuth() && (isAdmin() || request.auth.uid == userId);
+      allow list:  if isAdmin();
       allow write: if isAdmin();
     }
 
@@ -71,12 +76,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Admins collection - admin can read their own doc; no writes via client
-    match /admins/{uid} {
-      allow read: if isAuth() && request.auth.uid == uid;
-      allow write: if false;
-    }
-
     // Contest entries
     match /contestEntries/{entryId} {
       allow read: if true;
@@ -98,10 +97,16 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Ad analytics events logged by mobile app
+    // Ad analytics events logged by mobile app — require auth to prevent unauthenticated spam/abuse
     match /adEvents/{eventId} {
       allow read: if isAdmin();
-      allow create: if true;
+      allow create: if isAuth();
+    }
+
+    // FCM tokens — admin browser registers its own push token; Cloud Functions read via admin SDK
+    match /fcmTokens/{token} {
+      allow read:  if isAdmin();
+      allow write: if isAdmin();
     }
 
     // Email queue — admin can create & read; Cloud Function (admin SDK) writes status back

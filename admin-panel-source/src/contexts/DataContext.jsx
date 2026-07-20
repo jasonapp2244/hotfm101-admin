@@ -75,7 +75,7 @@ export function DataProvider({ children }) {
   const { data: contests,      optimisticAdd: addContestOpt,      optimisticUpdate: updateContestOpt,      optimisticRemove: removeContestOpt      } = useCollection('contests')
   const { data: events,        optimisticAdd: addEventOpt,        optimisticUpdate: updateEventOpt,        optimisticRemove: removeEventOpt        } = useCollection('events')
   const { data: shoutouts,     optimisticUpdate: updateShoutoutOpt                                                                                   } = useCollection('shoutouts')
-  const { data: notifications, optimisticAdd: addNotificationOpt                                                                                    } = useCollection('notifications')
+  const { data: notifications, optimisticAdd: addNotificationOpt, optimisticRemove: removeNotificationOpt } = useCollection('notifications')
   const { data: ads,           optimisticAdd: addAdOpt,           optimisticUpdate: updateAdOpt,           optimisticRemove: removeAdOpt           } = useCollection('ads')
   const { data: broadcasts,    optimisticAdd: addBroadcastOpt,    optimisticUpdate: updateBroadcastOpt,    optimisticRemove: removeBroadcastOpt    } = useCollection('broadcasts')
   const { data: adAnalyticsArray } = useCollection('adAnalytics', 'createdAt', 'desc')
@@ -93,6 +93,7 @@ export function DataProvider({ children }) {
 
   // ── Users ──────────────────────────────────────────────────────────────────
   const addUser = async (user) => {
+    const tempId = `tmp_${Date.now()}`
     const newItem = {
       ...user,
       joined: new Date().toISOString().split('T')[0],
@@ -102,153 +103,275 @@ export function DataProvider({ children }) {
       staff: ['Staff', 'Admin', 'Editor'].includes(user.role),
       createdAt: Timestamp.now(),
     }
-    addUserOpt({ id: `tmp_${Date.now()}`, ...newItem })
-    const ref = await addDoc(collection(db, 'users'), newItem)
-    await addActivity('user', `${user.name} was added to the system.`, 'NEW USER', 'bg-emerald-50 text-emerald-700')
-    return ref
+    addUserOpt({ id: tempId, ...newItem })
+    try {
+      const ref = await addDoc(collection(db, 'users'), newItem)
+      await addActivity('user', `${user.name} was added to the system.`, 'NEW USER', 'bg-emerald-50 text-emerald-700')
+      return ref
+    } catch (err) {
+      removeUserOpt(tempId)
+      throw err
+    }
   }
 
   const updateUser = async (id, updates) => {
+    const oldUser = users.find((u) => u.id === id)
     updateUserOpt(id, updates)
-    await updateDoc(doc(db, 'users', id), { ...updates, updatedAt: serverTimestamp() })
-    await addActivity('user', `User ${updates.name || 'record'} was updated.`, 'UPDATED', 'bg-blue-50 text-blue-700')
+    try {
+      await updateDoc(doc(db, 'users', id), { ...updates, updatedAt: serverTimestamp() })
+      await addActivity('user', `User ${updates.name || 'record'} was updated.`, 'UPDATED', 'bg-blue-50 text-blue-700')
+    } catch (err) {
+      if (oldUser) updateUserOpt(id, oldUser)
+      throw err
+    }
   }
 
   const deleteUser = async (id) => {
     const user = users.find((u) => u.id === id)
     removeUserOpt(id)
-    await deleteDoc(doc(db, 'users', id))
-    await addActivity('user', `${user?.name || 'A user'} was removed from the system.`, 'DELETED', 'bg-red-50 text-red-700')
+    try {
+      await deleteDoc(doc(db, 'users', id))
+      await addActivity('user', `${user?.name || 'A user'} was removed from the system.`, 'DELETED', 'bg-red-50 text-red-700')
+    } catch (err) {
+      if (user) addUserOpt(user)
+      throw err
+    }
   }
 
   // ── Articles ───────────────────────────────────────────────────────────────
   const addArticle = async (article) => {
+    const tempId = `tmp_${Date.now()}`
     const newItem = { ...article, views: 0, date: article.draft ? null : new Date().toISOString(), createdAt: Timestamp.now() }
-    addArticleOpt({ id: `tmp_${Date.now()}`, ...newItem })
-    await addDoc(collection(db, 'articles'), newItem)
-    await addActivity('content', `Article "${article.title}" was created.`, 'CONTENT', 'bg-blue-50 text-blue-700')
+    addArticleOpt({ id: tempId, ...newItem })
+    try {
+      await addDoc(collection(db, 'articles'), newItem)
+      await addActivity('content', `Article "${article.title}" was created.`, 'CONTENT', 'bg-blue-50 text-blue-700')
+    } catch (err) {
+      removeArticleOpt(tempId)
+      throw err
+    }
   }
 
   const updateArticle = async (id, updates) => {
+    const oldArticle = articles.find((a) => a.id === id)
     updateArticleOpt(id, updates)
-    await updateDoc(doc(db, 'articles', id), { ...updates, updatedAt: serverTimestamp() })
+    try {
+      await updateDoc(doc(db, 'articles', id), { ...updates, updatedAt: serverTimestamp() })
+    } catch (err) {
+      if (oldArticle) updateArticleOpt(id, oldArticle)
+      throw err
+    }
   }
 
   const deleteArticle = async (id) => {
     const article = articles.find((a) => a.id === id)
     removeArticleOpt(id)
-    await deleteDoc(doc(db, 'articles', id))
-    await addActivity('content', `Article "${article?.title || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    try {
+      await deleteDoc(doc(db, 'articles', id))
+      await addActivity('content', `Article "${article?.title || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    } catch (err) {
+      if (article) addArticleOpt(article)
+      throw err
+    }
   }
 
   // ── Contests ───────────────────────────────────────────────────────────────
   const addContest = async (contest) => {
+    const tempId = `tmp_${Date.now()}`
     const newItem = { ...contest, entries: [], createdAt: Timestamp.now() }
-    addContestOpt({ id: `tmp_${Date.now()}`, ...newItem })
-    await addDoc(collection(db, 'contests'), newItem)
-    await addActivity('contest', `Contest "${contest.name}" was created.`, 'CONTEST', 'bg-blue-50 text-blue-700')
+    addContestOpt({ id: tempId, ...newItem })
+    try {
+      await addDoc(collection(db, 'contests'), newItem)
+      await addActivity('contest', `Contest "${contest.name}" was created.`, 'CONTEST', 'bg-blue-50 text-blue-700')
+    } catch (err) {
+      removeContestOpt(tempId)
+      throw err
+    }
   }
 
   const updateContest = async (id, updates) => {
+    const oldContest = contests.find((c) => c.id === id)
     updateContestOpt(id, updates)
-    await updateDoc(doc(db, 'contests', id), { ...updates, updatedAt: serverTimestamp() })
+    try {
+      await updateDoc(doc(db, 'contests', id), { ...updates, updatedAt: serverTimestamp() })
+    } catch (err) {
+      if (oldContest) updateContestOpt(id, oldContest)
+      throw err
+    }
   }
 
   const deleteContest = async (id) => {
     const contest = contests.find((c) => c.id === id)
     removeContestOpt(id)
-    await deleteDoc(doc(db, 'contests', id))
-    await addActivity('contest', `Contest "${contest?.name || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    try {
+      await deleteDoc(doc(db, 'contests', id))
+      await addActivity('contest', `Contest "${contest?.name || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    } catch (err) {
+      if (contest) addContestOpt(contest)
+      throw err
+    }
   }
 
   // ── Events ─────────────────────────────────────────────────────────────────
   const addEvent = async (event) => {
+    const tempId = `tmp_${Date.now()}`
     const newItem = { ...event, rsvp: 0, createdAt: Timestamp.now() }
-    addEventOpt({ id: `tmp_${Date.now()}`, ...newItem })
-    await addDoc(collection(db, 'events'), newItem)
-    await addActivity('event', `Event "${event.name}" was created.`, 'EVENT', 'bg-amber-50 text-amber-700')
+    addEventOpt({ id: tempId, ...newItem })
+    try {
+      await addDoc(collection(db, 'events'), newItem)
+      await addActivity('event', `Event "${event.name}" was created.`, 'EVENT', 'bg-amber-50 text-amber-700')
+    } catch (err) {
+      removeEventOpt(tempId)
+      throw err
+    }
   }
 
   const updateEvent = async (id, updates) => {
+    const oldEvent = events.find((e) => e.id === id)
     updateEventOpt(id, updates)
-    await updateDoc(doc(db, 'events', id), { ...updates, updatedAt: serverTimestamp() })
+    try {
+      await updateDoc(doc(db, 'events', id), { ...updates, updatedAt: serverTimestamp() })
+    } catch (err) {
+      if (oldEvent) updateEventOpt(id, oldEvent)
+      throw err
+    }
   }
 
   const deleteEvent = async (id) => {
     const event = events.find((e) => e.id === id)
     removeEventOpt(id)
-    await deleteDoc(doc(db, 'events', id))
-    await addActivity('event', `Event "${event?.name || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    try {
+      await deleteDoc(doc(db, 'events', id))
+      await addActivity('event', `Event "${event?.name || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    } catch (err) {
+      if (event) addEventOpt(event)
+      throw err
+    }
   }
 
   // ── Shoutouts ──────────────────────────────────────────────────────────────
   const approveShoutout = async (id) => {
     const s = shoutouts.find((s) => s.id === id)
     updateShoutoutOpt(id, { status: 'approved' })
-    await updateDoc(doc(db, 'shoutouts', id), { status: 'approved', updatedAt: serverTimestamp() })
-    await addActivity('shoutout', `Shoutout from ${s?.name || 'user'} was approved.`, 'APPROVED', 'bg-emerald-50 text-emerald-700')
+    try {
+      await updateDoc(doc(db, 'shoutouts', id), { status: 'approved', updatedAt: serverTimestamp() })
+      await addActivity('shoutout', `Shoutout from ${s?.name || 'user'} was approved.`, 'APPROVED', 'bg-emerald-50 text-emerald-700')
+    } catch (err) {
+      if (s) updateShoutoutOpt(id, { status: s.status })
+      throw err
+    }
   }
 
   const rejectShoutout = async (id) => {
     const s = shoutouts.find((s) => s.id === id)
     updateShoutoutOpt(id, { status: 'rejected' })
-    await updateDoc(doc(db, 'shoutouts', id), { status: 'rejected', updatedAt: serverTimestamp() })
-    await addActivity('shoutout', `Shoutout from ${s?.name || 'user'} was rejected.`, 'REJECTED', 'bg-red-50 text-red-700')
+    try {
+      await updateDoc(doc(db, 'shoutouts', id), { status: 'rejected', updatedAt: serverTimestamp() })
+      await addActivity('shoutout', `Shoutout from ${s?.name || 'user'} was rejected.`, 'REJECTED', 'bg-red-50 text-red-700')
+    } catch (err) {
+      if (s) updateShoutoutOpt(id, { status: s.status })
+      throw err
+    }
   }
 
   const markEmailSent = async (id) => {
     const s = shoutouts.find((s) => s.id === id)
     updateShoutoutOpt(id, { emailSent: true })
-    await updateDoc(doc(db, 'shoutouts', id), { emailSent: true, emailSentAt: serverTimestamp() })
-    await addActivity('shoutout', `Approval email sent to ${s?.name || 'user'}.`, 'EMAIL SENT', 'bg-blue-50 text-blue-700')
+    try {
+      await updateDoc(doc(db, 'shoutouts', id), { emailSent: true, emailSentAt: serverTimestamp() })
+      await addActivity('shoutout', `Approval email sent to ${s?.name || 'user'}.`, 'EMAIL SENT', 'bg-blue-50 text-blue-700')
+    } catch (err) {
+      updateShoutoutOpt(id, { emailSent: false })
+      throw err
+    }
   }
 
   // ── Notifications ──────────────────────────────────────────────────────────
   const addNotification = async (notification) => {
+    const tempId = `tmp_${Date.now()}`
     const newItem = { ...notification, date: new Date().toISOString(), reach: 0, createdAt: Timestamp.now() }
-    addNotificationOpt({ id: `tmp_${Date.now()}`, ...newItem })
-    await addDoc(collection(db, 'notifications'), newItem)
-    await addActivity('notification', `Push notification "${notification.title}" sent.`, 'PUSH', 'bg-amber-50 text-amber-700')
+    addNotificationOpt({ id: tempId, ...newItem })
+    try {
+      await addDoc(collection(db, 'notifications'), newItem)
+      await addActivity('notification', `Push notification "${notification.title}" sent.`, 'PUSH', 'bg-amber-50 text-amber-700')
+    } catch (err) {
+      removeNotificationOpt(tempId)
+      throw err
+    }
   }
 
   // ── Ads ────────────────────────────────────────────────────────────────────
   const addAd = async (ad) => {
+    const tempId = `tmp_${Date.now()}`
     const newItem = { ...ad, createdAt: Timestamp.now() }
-    addAdOpt({ id: `tmp_${Date.now()}`, ...newItem })
-    await addDoc(collection(db, 'ads'), newItem)
-    await addActivity('ad', `Ad "${ad.title}" was created.`, 'AD', 'bg-orange-50 text-orange-700')
+    addAdOpt({ id: tempId, ...newItem })
+    try {
+      await addDoc(collection(db, 'ads'), newItem)
+      await addActivity('ad', `Ad "${ad.title}" was created.`, 'AD', 'bg-orange-50 text-orange-700')
+    } catch (err) {
+      removeAdOpt(tempId)
+      throw err
+    }
   }
 
   const updateAd = async (id, updates) => {
+    const oldAd = ads.find((a) => a.id === id)
     updateAdOpt(id, updates)
-    await updateDoc(doc(db, 'ads', id), { ...updates, updatedAt: serverTimestamp() })
+    try {
+      await updateDoc(doc(db, 'ads', id), { ...updates, updatedAt: serverTimestamp() })
+    } catch (err) {
+      if (oldAd) updateAdOpt(id, oldAd)
+      throw err
+    }
   }
 
   const deleteAd = async (id) => {
     const ad = ads.find((a) => a.id === id)
     removeAdOpt(id)
-    await deleteDoc(doc(db, 'ads', id))
-    await addActivity('ad', `Ad "${ad?.title || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    try {
+      await deleteDoc(doc(db, 'ads', id))
+      await addActivity('ad', `Ad "${ad?.title || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    } catch (err) {
+      if (ad) addAdOpt(ad)
+      throw err
+    }
   }
 
   // ── Broadcasts ─────────────────────────────────────────────────────────────
   const addBroadcast = async (broadcast) => {
+    const tempId = `tmp_${Date.now()}`
     const newItem = { ...broadcast, viewerCount: 0, createdAt: Timestamp.now() }
-    addBroadcastOpt({ id: `tmp_${Date.now()}`, ...newItem })
-    await addDoc(collection(db, 'broadcasts'), newItem)
-    await addActivity('broadcast', `Broadcast "${broadcast.title}" was created.`, 'BROADCAST', 'bg-red-50 text-red-700')
+    addBroadcastOpt({ id: tempId, ...newItem })
+    try {
+      await addDoc(collection(db, 'broadcasts'), newItem)
+      await addActivity('broadcast', `Broadcast "${broadcast.title}" was created.`, 'BROADCAST', 'bg-red-50 text-red-700')
+    } catch (err) {
+      removeBroadcastOpt(tempId)
+      throw err
+    }
   }
 
   const updateBroadcast = async (id, updates) => {
+    const oldBroadcast = broadcasts.find((b) => b.id === id)
     updateBroadcastOpt(id, updates)
-    await updateDoc(doc(db, 'broadcasts', id), { ...updates, updatedAt: serverTimestamp() })
+    try {
+      await updateDoc(doc(db, 'broadcasts', id), { ...updates, updatedAt: serverTimestamp() })
+    } catch (err) {
+      if (oldBroadcast) updateBroadcastOpt(id, oldBroadcast)
+      throw err
+    }
   }
 
   const deleteBroadcast = async (id) => {
     const bc = broadcasts.find((b) => b.id === id)
     removeBroadcastOpt(id)
-    await deleteDoc(doc(db, 'broadcasts', id))
-    await addActivity('broadcast', `Broadcast "${bc?.title || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    try {
+      await deleteDoc(doc(db, 'broadcasts', id))
+      await addActivity('broadcast', `Broadcast "${bc?.title || ''}" was deleted.`, 'DELETED', 'bg-red-50 text-red-700')
+    } catch (err) {
+      if (bc) addBroadcastOpt(bc)
+      throw err
+    }
   }
 
   // AdAnalytics page expects an object keyed by ad document id

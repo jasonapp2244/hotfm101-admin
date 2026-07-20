@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -32,47 +32,72 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState('')
+  // Holds the FCM foreground listener unsubscribe fn so it can be cleaned up on sign-out / re-auth
+  const fcmUnsubRef = useRef(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Look up user document in users collection by Firebase Auth UID
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+      // Always clean up the previous FCM listener before setting up a new one
+      if (fcmUnsubRef.current) {
+        fcmUnsubRef.current()
+        fcmUnsubRef.current = null
+      }
 
-        if (userDoc.exists()) {
-          const data = userDoc.data()
-          const role = (data.role || '').toLowerCase().trim()
+      try {
+        if (firebaseUser) {
+          // Look up user document in users collection by Firebase Auth UID
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
 
-          // Block listeners — they have no admin panel access
-          if (role === 'listener' || role === '') {
+          if (userDoc.exists()) {
+            const data = userDoc.data()
+            const role = (data.role || '').toLowerCase().trim()
+
+            // Block listeners — they have no admin panel access
+            if (role === 'listener' || role === '') {
+              await signOut(auth)
+              setUser(null)
+              setAuthError('Your account does not have access to this portal.')
+            } else {
+              setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                name: data.name || firebaseUser.displayName || firebaseUser.email,
+                role: data.role,        // keep original casing for display
+                roleNorm: role,         // normalized for permission checks
+              })
+              // Register FCM token (non-blocking)
+              registerFCMToken(firebaseUser.uid)
+              // Start foreground listener and store the unsubscribe so it can be cleaned up
+              listenForForegroundMessages().then(unsub => {
+                fcmUnsubRef.current = unsub
+              })
+            }
+          } else {
+            // UID not found in users collection → no access
             await signOut(auth)
             setUser(null)
-            setAuthError('Your account does not have access to this portal.')
-          } else {
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              name: data.name || firebaseUser.displayName || firebaseUser.email,
-              role: data.role,        // keep original casing for display
-              roleNorm: role,         // normalized for permission checks
-            })
-            // Register FCM token and listen for foreground messages (non-blocking)
-            registerFCMToken(firebaseUser.uid)
-            listenForForegroundMessages()
+            setAuthError('Your account is not registered in the system. Contact your administrator.')
           }
         } else {
-          // UID not found in users collection → no access
-          await signOut(auth)
           setUser(null)
-          setAuthError('Your account is not registered in the system. Contact your administrator.')
         }
-      } else {
+      } catch (err) {
+        console.error('[AuthContext] onAuthStateChanged error:', err)
         setUser(null)
+      } finally {
+        // Always clear loading regardless of success or error
+        setLoading(false)
       }
-      setLoading(false)
     })
 
-    return () => unsubscribe()
+    return () => {
+      unsubscribe()
+      // Clean up FCM listener when the provider unmounts
+      if (fcmUnsubRef.current) {
+        fcmUnsubRef.current()
+        fcmUnsubRef.current = null
+      }
+    }
   }, [])
 
   const login = async (email, password) => {

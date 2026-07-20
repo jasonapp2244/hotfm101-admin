@@ -65,7 +65,10 @@ export default function Layout({ children, breadcrumb = [], searchPlaceholder = 
                       </div>
                       {/* Toggle pill */}
                       <div className={`w-9 h-5 rounded-full relative transition-colors duration-200 ${dark ? 'bg-accent' : 'bg-gray-200'}`}>
-                        <span className={`absolute top-0.5 w-4 h-4 rounded-full shadow transition-transform duration-200 ${dark ? 'translate-x-4' : 'translate-x-0.5'}`} style={{ backgroundColor: '#ffffff' }} />
+                        <span
+                          className="absolute top-0.5 w-4 h-4 rounded-full shadow transition-transform duration-200"
+                          style={{ backgroundColor: '#ffffff', transform: dark ? 'translateX(16px)' : 'translateX(2px)' }}
+                        />
                       </div>
                     </button>
 
@@ -115,7 +118,7 @@ export default function Layout({ children, breadcrumb = [], searchPlaceholder = 
                       Edit Profile
                     </button>
                     <button
-                      onClick={() => { setMenuOpen(false); logout() }}
+                      onClick={async () => { setMenuOpen(false); await logout() }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
                     >
                       <LogOut className="w-4 h-4" />
