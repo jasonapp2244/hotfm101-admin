@@ -3,16 +3,39 @@
  *
  * Creates Firebase Auth accounts + users Firestore docs for all roles.
  *
+ * Passwords are read from the environment — never hardcode them here.
+ * Set them in backend-source/.env (gitignored):
+ *
+ *   SUPERADMIN_PASSWORD=...
+ *   ADMIN_PASSWORD=...
+ *   EDITOR_PASSWORD=...
+ *   STAFF_PASSWORD=...
+ *
  * Run:
  *   cd backend-source
- *   node create-admin-users.js
- *
- * After running, use these credentials to test each role in the admin panel.
+ *   node --env-file=.env create-admin-users.js
  */
 
 const admin = require('firebase-admin')
 const path  = require('path')
 const fs    = require('fs')
+
+// ── Password lookup ──────────────────────────────────────────────────────────
+// Fails loudly rather than silently creating an account with a default password.
+function requirePassword(envVar) {
+  const val = process.env[envVar]
+  if (!val) {
+    console.error(`\n❌  Missing required env var: ${envVar}`)
+    console.error('    Set it in backend-source/.env and run with:')
+    console.error('    node --env-file=.env create-admin-users.js\n')
+    process.exit(1)
+  }
+  if (val.length < 6) {
+    console.error(`\n❌  ${envVar} must be at least 6 characters (Firebase minimum).\n`)
+    process.exit(1)
+  }
+  return val
+}
 
 // ── Service account (auto-detect) ────────────────────────────────────────────
 const fixed = path.join(__dirname, 'serviceAccountKey.json')
@@ -26,12 +49,12 @@ const au  = admin.auth()
 const now = admin.firestore.Timestamp.now()
 
 // ── Users to create ──────────────────────────────────────────────────────────
-// Change passwords here if you want different ones
+// Passwords come from the environment — see requirePassword() above.
 const ADMIN_USERS = [
   {
     name:     'Super Admin',
     email:    'superadmin@hot101.com',
-    password: 'SuperAdmin@101',
+    password: requirePassword('SUPERADMIN_PASSWORD'),
     role:     'Super Admin',
     status:   'Active',
     verified: true,
@@ -40,7 +63,7 @@ const ADMIN_USERS = [
   {
     name:     'Station Admin',
     email:    'admin@hot101.com',
-    password: 'Admin@101',
+    password: requirePassword('ADMIN_PASSWORD'),
     role:     'Admin',
     status:   'Active',
     verified: true,
@@ -49,7 +72,7 @@ const ADMIN_USERS = [
   {
     name:     'Content Editor',
     email:    'editor@hot101.com',
-    password: 'Editor@101',
+    password: requirePassword('EDITOR_PASSWORD'),
     role:     'Editor',
     status:   'Active',
     verified: true,
@@ -58,7 +81,7 @@ const ADMIN_USERS = [
   {
     name:     'Station Staff',
     email:    'staff@hot101.com',
-    password: 'Staff@101',
+    password: requirePassword('STAFF_PASSWORD'),
     role:     'Staff',
     status:   'Active',
     verified: true,
@@ -127,10 +150,11 @@ async function main() {
   )
   console.log('─'.repeat(72))
   for (const r of results) {
+    // Never echo the actual password — it came from the environment.
     console.log(
       (' ' + r.role).padEnd(16),
       r.email.padEnd(28),
-      r.password
+      '(from env)'
     )
   }
   console.log('─'.repeat(72))
